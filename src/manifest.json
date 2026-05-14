@@ -1,0 +1,47 @@
+{
+    "name": "GeoVitals",
+    "description": "Provides information about different countries with their COVID-19 and active virus outbreak stats.",
+    "version": "0.0.1",
+    "manifest_version": 3,
+    "icons": {
+        "16": "./16.png",
+        "32": "./32.png",
+        "48": "./48.png",
+        "128": "./128.png"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>",
+                "https://*/*",
+                "http://*/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "action": {
+        "default_icon": {
+            "16": "./16.png",
+            "32": "./32.png",
+            "48": "./48.png",
+            "128": "./128.png"
+        },
+        "default_popup": "popup.html"
+    },
+    "permissions": [
+        "storage",
+        "tabs",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "https://api.worldbank.org/*",
+        "https://disease.sh/*",
+        "https://www.who.int/*"
+    ]
+}

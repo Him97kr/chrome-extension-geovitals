@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Extension Popup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #1e1e2e;
+      --accent-on: #00e5a0;
+      --accent-off: #ff4d6d;
+      --text-primary: #f0f0f5;
+      --text-muted: #5a5a7a;
+      --glow-on: rgba(0, 229, 160, 0.25);
+      --glow-off: rgba(255, 77, 109, 0.2);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 280px;
+      background: var(--bg);
+      font-family: 'DM Mono', monospace;
+      color: var(--text-primary);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .container {
+      padding: 20px;
+      position: relative;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-on);
+      box-shadow: 0 0 8px var(--accent-on);
+      transition: all 0.4s ease;
+    }
+
+    .logo-dot.off {
+      background: var(--accent-off);
+      box-shadow: 0 0 8px var(--accent-off);
+    }
+
+    .title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+    }
+
+    .version {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* Main toggle area */
+    .toggle-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 0 20px;
+      gap: 16px;
+    }
+
+    /* Status ring around toggle */
+    .toggle-ring {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 2;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: var(--accent-on);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-dasharray: 245;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                  stroke 0.4s ease,
+                  filter 0.4s ease;
+      filter: drop-shadow(0 0 4px var(--accent-on));
+    }
+
+    .ring-progress.off {
+      stroke: var(--accent-off);
+      stroke-dashoffset: 245;
+      filter: drop-shadow(0 0 4px var(--accent-off));
+    }
+
+    /* The actual toggle button */
+    .toggle-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: none;
+      background: var(--surface);
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      outline: none;
+      z-index: 1;
+    }
+
+    .toggle-btn::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-on), transparent);
+      opacity: 0.3;
+      transition: opacity 0.4s ease;
+    }
+
+    .toggle-btn.off::before {
+      background: linear-gradient(135deg, var(--accent-off), transparent);
+    }
+
+    .toggle-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .toggle-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* Power icon */
+    .power-icon {
+      width: 28px;
+      height: 28px;
+      transition: all 0.4s ease;
+    }
+
+    .power-icon .circle {
+      fill: none;
+      stroke: var(--accent-on);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-dasharray: 60;
+      stroke-dashoffset: 15;
+      transition: stroke 0.4s ease;
+    }
+
+    .power-icon .line {
+      stroke: var(--accent-on);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      transition: stroke 0.4s ease;
+    }
+
+    .toggle-btn.off .power-icon .circle,
+    .toggle-btn.off .power-icon .line {
+      stroke: var(--accent-off);
+    }
+
+    /* Glow pulse animation when ON */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 var(--glow-on); }
+      50% { box-shadow: 0 0 0 12px transparent; }
+    }
+
+    .toggle-btn.on {
+      animation: pulse-glow 2.5s ease infinite;
+    }
+
+    /* Status label */
+    .status-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-on);
+      transition: color 0.4s ease, opacity 0.4s ease;
+    }
+
+    .status-label.off {
+      color: var(--accent-off);
+    }
+
+    .status-sub {
+      font-size: 10px;
+      color: #b4b4f9;
+      letter-spacing: 0.06em;
+      margin-top: -10px;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Stats row */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      transition: border-color 0.4s ease;
+    }
+
+    .stat-card.active {
+      border-color: rgba(0, 229, 160, 0.2);
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: #b4b4f9;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-link {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-link:hover {
+      color: var(--text-primary);
+    }
+
+    /* Entry animation */
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .container > * {
+      animation: slide-up 0.3s ease forwards;
+    }
+
+    .header { animation-delay: 0s; }
+    .toggle-area { animation-delay: 0.05s; }
+    .stats { animation-delay: 0.1s; }
+    .footer { animation-delay: 0.15s; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <div class="logo-area">
+        <div class="logo-dot" id="logoDot"></div>
+        <span class="title">
+          GeoVitals
+        </span>
+      </div>
+      <span class="version">v1.0.0</span>
+    </div>
+
+    <div class="toggle-area">
+      <div class="toggle-ring">
+        <svg class="ring-svg" viewBox="0 0 88 88">
+          <circle class="ring-bg" cx="44" cy="44" r="39" />
+          <circle class="ring-progress" id="ringProgress" cx="44" cy="44" r="39" />
+        </svg>
+        <button class="toggle-btn on" id="toggleBtn" title="Toggle extension">
+          <svg class="power-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line class="line" x1="14" y1="4" x2="14" y2="13" />
+            <path class="circle" d="M8 7.5A10 10 0 1 0 20 7.5" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="status-label" id="statusLabel">ACTIVE</div>
+      <div class="status-sub" id="statusSub">Extension is running</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card active" id="statCard1">
+        <div class="stat-label">Session</div>
+        <div class="stat-value" id="sessionTime">00:00</div>
+      </div>
+      <div class="stat-card active" id="statCard2">
+        <div class="stat-label">Status</div>
+        <div class="stat-value" id="statusText">Enabled</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span class="footer-link" id="currentTab">active tab</span>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
