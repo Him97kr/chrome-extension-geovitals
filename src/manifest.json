@@ -1,6 +1,6 @@
 {
     "name": "GeoVitals",
-    "description": "Provides information about different countries with their COVID-19 and active virus outbreak stats.",
+    "description": "Provides information about different countries on any website with their population, COVID-19 and virus outbreak stats.",
     "version": "1.0.0",
     "manifest_version": 3,
     "icons": {
