@@ -164,3 +164,11 @@ Content script renders tooltip
 - [REST Countries](https://restcountries.com) for country data
 - [disease.sh](https://disease.sh) for COVID-19 statistics
 - [World Health Organization](https://www.who.int) for outbreak news
+
+---
+
+## 👨‍💻 Author
+
+**Himanshu**
+- GitHub: [@Him97kr](https://github.com/Him97kr)
+- LinkedIn: [Himanshu Kumar](https://in.linkedin.com/in/himanshu-kumar-518b71192)
