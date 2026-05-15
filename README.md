@@ -167,6 +167,12 @@ Content script renders tooltip
 
 ---
 
+## 🛡️ Privacy Policy
+
+- Link: [Privacy Policy](https://him97kr.github.io/chrome-extension-geovitals/privacy/)
+
+---
+
 ## 👨‍💻 Author
 
 **Himanshu**
