@@ -141,7 +141,7 @@ Content script renders tooltip
 
 ## 🧱 Tech Stack
 
-- **React** — popup and options page UI
+- **React** — popup page UI
 - **Vanilla JS** — content script and background worker (no framework overhead)
 - **Webpack 5** — bundles React and keeps background/content scripts separate
 - **Babel** — JSX and modern JS transpilation
