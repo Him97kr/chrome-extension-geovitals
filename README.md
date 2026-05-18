@@ -8,7 +8,7 @@
 
 ## 📥 Install on Chrome
 
-[![Available in the Chrome](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
+[Available in the Chrome](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
 
 ---
 
