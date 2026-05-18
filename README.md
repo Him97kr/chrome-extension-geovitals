@@ -1,8 +1,14 @@
 # 🌍 GeoVitals — Country Intelligence Chrome Extension
 
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/igkoiddcpkagiijomnmcadchopdnmlje?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=00e5a0)](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
+
 > Hover over any country name on any webpage to instantly see its population, population density, COVID-19 statistics, and WHO disease outbreak alerts.
 
 ![Extension Demo](/public/demo.gif)
+
+## 📥 Install on Chrome
+
+[![Available in the Chrome Web Store](https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/UV4C4ybeBTsZt43U4xis.png)](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
 
 ---
 
