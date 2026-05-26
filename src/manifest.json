@@ -1,8 +1,8 @@
 {
-    "name": "GeoVitals",
-    "description": "Provides information about different countries on any website with their population, COVID-19 and virus outbreak stats.",
-    "version": "1.0.0",
     "manifest_version": 3,
+    "name": "GeoVitals",
+    "version": "1.1.0",
+    "description": "Hover over any country name to instantly see population, density, capital city, COVID-19 stats and WHO disease outbreak alerts.",
     "icons": {
         "16": "16.png",
         "32": "32.png",
@@ -15,9 +15,7 @@
     "content_scripts": [
         {
             "matches": [
-                "<all_urls>",
-                "https://*/*",
-                "http://*/*"
+                "<all_urls>"
             ],
             "js": [
                 "content.js"
@@ -34,13 +32,26 @@
         },
         "default_popup": "popup.html"
     },
+    "commands": {
+        "toggle-extension": {
+            "suggested_key": {
+                "default": "Alt+G",
+                "mac": "Alt+G"
+            },
+            "description": "Toggle GeoVitals on or off"
+        }
+    },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
+    },
     "permissions": [
         "storage",
         "tabs",
         "activeTab"
     ],
     "host_permissions": [
-        "https://api.worldbank.org/*",
+        "https://restcountries.com/*",
         "https://disease.sh/*",
         "https://www.who.int/*"
     ]

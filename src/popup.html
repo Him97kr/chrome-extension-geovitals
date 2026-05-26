@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Extension Popup</title>
+  <title>GeoVitals</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap"
+    rel="stylesheet" />
   <style>
     :root {
       --bg: #0a0a0f;
@@ -14,9 +16,8 @@
       --accent-on: #00e5a0;
       --accent-off: #ff4d6d;
       --text-primary: #f0f0f5;
-      --text-muted: #5a5a7a;
+      --text-muted: #b4b4f9;
       --glow-on: rgba(0, 229, 160, 0.25);
-      --glow-off: rgba(255, 77, 109, 0.2);
     }
 
     * {
@@ -34,7 +35,6 @@
       user-select: none;
     }
 
-    /* Noise texture overlay */
     body::before {
       content: '';
       position: fixed;
@@ -93,7 +93,7 @@
       letter-spacing: 0.08em;
     }
 
-    /* Main toggle area */
+    /* Toggle */
     .toggle-area {
       display: flex;
       flex-direction: column;
@@ -102,7 +102,6 @@
       gap: 16px;
     }
 
-    /* Status ring around toggle */
     .toggle-ring {
       position: relative;
       width: 88px;
@@ -133,9 +132,7 @@
       stroke-linecap: round;
       stroke-dasharray: 245;
       stroke-dashoffset: 0;
-      transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-                  stroke 0.4s ease,
-                  filter 0.4s ease;
+      transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s ease, filter 0.4s ease;
       filter: drop-shadow(0 0 4px var(--accent-on));
     }
 
@@ -145,7 +142,6 @@
       filter: drop-shadow(0 0 4px var(--accent-off));
     }
 
-    /* The actual toggle button */
     .toggle-btn {
       width: 64px;
       height: 64px;
@@ -184,7 +180,6 @@
       transform: scale(0.96);
     }
 
-    /* Power icon */
     .power-icon {
       width: 28px;
       height: 28px;
@@ -213,17 +208,22 @@
       stroke: var(--accent-off);
     }
 
-    /* Glow pulse animation when ON */
     @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 0 0 var(--glow-on); }
-      50% { box-shadow: 0 0 0 12px transparent; }
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 var(--glow-on);
+      }
+
+      50% {
+        box-shadow: 0 0 0 10px transparent;
+      }
     }
 
     .toggle-btn.on {
       animation: pulse-glow 2.5s ease infinite;
     }
 
-    /* Status label */
     .status-label {
       font-family: 'Syne', sans-serif;
       font-size: 18px;
@@ -231,7 +231,7 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--accent-on);
-      transition: color 0.4s ease, opacity 0.4s ease;
+      transition: color 0.4s ease;
     }
 
     .status-label.off {
@@ -280,6 +280,95 @@
       color: var(--text-primary);
     }
 
+    /* Last country card */
+    .last-country {
+      margin-top: 8px;
+      background: var(--surface);
+      border: 1px solid rgba(0, 229, 160, 0.15);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+      text-decoration: none;
+      display: block;
+    }
+
+    .last-country:hover {
+      border-color: rgba(0, 229, 160, 0.4);
+    }
+
+    .last-country-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .last-country-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .last-country-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .last-country-empty {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* options card */
+    .options-card {
+      margin-top: 8px;
+      background: var(--surface);
+      border: 1px solid rgba(0, 229, 160, 0.15);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+      text-decoration: none;
+      display: block;
+    }
+
+    .options-card-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Shortcut hint */
+    .shortcut-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .kbd {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
     /* Footer */
     .footer {
       display: flex;
@@ -303,53 +392,83 @@
       color: var(--text-primary);
     }
 
-    /* Entry animation */
+    .footer-link.geoquery {
+      color: var(--accent-on);
+      font-size: 9px;
+    }
+
+    /* Animations */
     @keyframes slide-up {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    .container > * {
-      animation: slide-up 0.3s ease forwards;
+    .container>* {
+      animation: slide-up 0.25s ease forwards;
     }
 
-    .header { animation-delay: 0s; }
-    .toggle-area { animation-delay: 0.05s; }
-    .stats { animation-delay: 0.1s; }
-    .footer { animation-delay: 0.15s; }
+    .header {
+      animation-delay: 0s;
+    }
+
+    .toggle-area {
+      animation-delay: 0.04s;
+    }
+
+    .stats {
+      animation-delay: 0.08s;
+    }
+
+    .last-country {
+      animation-delay: 0.10s;
+    }
+
+    .shortcut-hint {
+      animation-delay: 0.12s;
+    }
+
+    .footer {
+      animation-delay: 0.14s;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
 
     <div class="header">
       <div class="logo-area">
         <div class="logo-dot" id="logoDot"></div>
-        <span class="title">
-          GeoVitals
-        </span>
+        <span class="title">GeoVitals</span>
       </div>
-      <span class="version">v1.0.0</span>
+      <span class="version">v1.1.0</span>
     </div>
 
     <div class="toggle-area">
       <div class="toggle-ring">
-        <svg class="ring-svg" viewBox="0 0 88 88">
-          <circle class="ring-bg" cx="44" cy="44" r="39" />
-          <circle class="ring-progress" id="ringProgress" cx="44" cy="44" r="39" />
+        <svg class="ring-svg" viewBox="0 0 80 80">
+          <circle class="ring-bg" cx="40" cy="40" r="35" />
+          <circle class="ring-progress" id="ringProgress" cx="40" cy="40" r="35" />
         </svg>
-        <button class="toggle-btn on" id="toggleBtn" title="Toggle extension">
-          <svg class="power-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <button class="toggle-btn on" id="toggleBtn" title="Toggle extension (Alt+G)">
+          <svg class="power-icon" viewBox="0 0 28 28" fill="none">
             <line class="line" x1="14" y1="4" x2="14" y2="13" />
             <path class="circle" d="M8 7.5A10 10 0 1 0 20 7.5" />
           </svg>
         </button>
       </div>
-
       <div class="status-label" id="statusLabel">ACTIVE</div>
       <div class="status-sub" id="statusSub">Extension is running</div>
     </div>
 
+    <!-- Session + Status -->
     <div class="stats">
       <div class="stat-card active" id="statCard1">
         <div class="stat-label">Session</div>
@@ -361,11 +480,37 @@
       </div>
     </div>
 
+    <!-- Options card -->
+    <div class="options-card">
+      <div class="options-card-label" id="optionsLink">⚙ Options</div>
+    </div>
+
+    <!-- Last hovered country -->
+    <div class="last-country" id="lastCountryCard">
+      <div class="last-country-label">Last Country</div>
+      <div class="last-country-name" id="lastCountryName">
+        <span class="last-country-empty">Hover a country to see data</span>
+      </div>
+      <div class="last-country-meta" id="lastCountryMeta"></div>
+    </div>
+
+    <!-- Keyboard shortcut hint -->
+    <div class="shortcut-hint">
+      <span class="kbd">Alt</span>
+      <span style="font-size:9px">+</span>
+      <span class="kbd">G</span>
+      <span style="font-size:10px;margin-left:2px">toggle extension</span>
+    </div>
+
     <div class="footer">
+      <!-- <a class="footer-link" id="optionsLink">⚙ Options</a> -->
+      <a class="footer-link geoquery" id="geoqueryLink" href="https://him97kr.github.io/geoquery-dashboard"
+        target="_blank">🌍 GeoQuery Dashboard</a>
       <span class="footer-link" id="currentTab">active tab</span>
     </div>
 
   </div>
   <script src="popup.js"></script>
 </body>
+
 </html>

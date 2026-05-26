@@ -36,16 +36,29 @@
   let tooltip = null;
   let hideTimer = null;
   let currentHighlight = null;
+  const settings = {
+    showCovid: true,
+    showWHO: true,
+    highlightLinks: true,
+    excludedCountries: [],
+  };
 
-  // ─── Check extension state on load ──────────────────────────────────────────
-  chrome.runtime.sendMessage({ action: "getExtensionState" }, (res) => {
-    if (res?.enabled === false) return;
-    isEnabled = true;
-    injectStyles();
-    scanAndHighlight();
-  });
+  // ─── Check extension state + settings on load ───────────────────────────────
+  chrome.storage.sync.get(
+    ["extensionEnabled", "showCovid", "showWHO", "highlightLinks", "excludedCountries"],
+    (result) => {
+      if (result.extensionEnabled === false) return;
+      isEnabled = true;
+      settings.showCovid = result.showCovid !== false;
+      settings.showWHO = result.showWHO !== false;
+      settings.highlightLinks = result.highlightLinks !== false;
+      settings.excludedCountries = result.excludedCountries || [];
+      injectStyles();
+      scanAndHighlight();
+    }
+  );
 
-  // ─── Listen for toggle from popup ───────────────────────────────────────────
+  // ─── Listen for messages from popup / options ────────────────────────────────
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "toggleExtension") {
       isEnabled = message.enabled;
@@ -56,6 +69,16 @@
         injectStyles();
         scanAndHighlight();
       }
+    }
+    if (message.action === "updateSettings") {
+      const s = message.settings;
+      settings.showCovid = s.showCovid !== false;
+      settings.showWHO = s.showWHO !== false;
+      settings.highlightLinks = s.highlightLinks !== false;
+      settings.excludedCountries = s.excludedCountries || [];
+      // Re-scan with new exclusion list
+      removeAllHighlights();
+      if (isEnabled) scanAndHighlight();
     }
   });
 
@@ -72,12 +95,22 @@
         background: linear-gradient(120deg, rgba(0,229,160,0.18) 0%, rgba(0,229,160,0.08) 100%);
         border-bottom: 1.5px solid rgba(0,229,160,0.6);
         border-radius: 2px;
-        cursor: pointer;
+        cursor: pointer !important;
         transition: background 0.2s ease;
         padding: 0 1px;
+        pointer-events: auto !important;
+        position: relative;
+        z-index: 9999;
+        display: inline;
       }
       .cei-highlight:hover {
         background: linear-gradient(120deg, rgba(0,229,160,0.32) 0%, rgba(0,229,160,0.15) 100%);
+      }
+      /* Ensure highlights inside anchors always receive mouse events */
+      a .cei-highlight,
+      a:hover .cei-highlight {
+        pointer-events: auto !important;
+        cursor: pointer !important;
       }
 
       #cei-tooltip {
@@ -154,6 +187,7 @@
         color: #00e5a0;
         line-height: 1.2;
         margin-bottom: 4px;
+        text-transform: uppercase;
       }
       .cei-stat-label {
         font-size: 9px;
@@ -288,6 +322,13 @@
 
   // ─── Scan DOM and wrap country names ────────────────────────────────────────
   function scanAndHighlight() {
+    // Filter out excluded countries from pattern
+    const activeCountries = COUNTRIES.filter(
+      (c) => !settings.excludedCountries
+        .map((e) => e.toLowerCase())
+        .includes(c.toLowerCase())
+    );
+
     const walker = document.createTreeWalker(
       document.body,
       NodeFilter.SHOW_TEXT,
@@ -304,6 +345,14 @@
           if (parent.classList?.contains("cei-highlight")) {
             return NodeFilter.FILTER_REJECT;
           }
+          // Skip anchor tags if highlightLinks is disabled
+          if (tag === "A" && !settings.highlightLinks) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          // Skip empty anchor text
+          if (tag === "A" && (!node.textContent || node.textContent.trim().length < 2)) {
+            return NodeFilter.FILTER_REJECT;
+          }
           return NodeFilter.FILTER_ACCEPT;
         },
       }
@@ -313,8 +362,8 @@
     let node;
     while ((node = walker.nextNode())) textNodes.push(node);
 
-    // Build a regex from the country list — longest first to avoid partial matches
-    const sorted = [...COUNTRIES].sort((a, b) => b.length - a.length);
+    // Build a regex from active countries — longest first to avoid partial matches
+    const sorted = [...activeCountries].sort((a, b) => b.length - a.length);
     const pattern = new RegExp(`\\b(${sorted.map(escapeRegex).join("|")})\\b`, "g");
 
     textNodes.forEach((textNode) => {
@@ -338,6 +387,13 @@
         span.textContent = match[1];
         span.addEventListener("mouseenter", onHighlightEnter);
         span.addEventListener("mouseleave", onHighlightLeave);
+        // If inside a hyperlink — prevent tooltip click from navigating
+        // but still allow the link itself to work normally
+        span.addEventListener("click", (e) => e.stopPropagation());
+        // Ensure pointer events work even if parent anchor disables them
+        span.style.pointerEvents = "auto";
+        span.style.position = "relative";
+        span.style.zIndex = "1";
         fragment.appendChild(span);
         lastIndex = match.index + match[1].length;
       }
@@ -381,7 +437,6 @@
     tooltip.innerHTML = `
       <div class="cei-header">
         <span class="cei-country-name">${countryName}</span>
-        <span class="cei-flag">${getFlagEmoji(countryName)}</span>
       </div>
       <div class="cei-loading">
         <div class="cei-spinner"></div>
@@ -449,7 +504,7 @@
     if (!tooltip) return;
 
     const demo = demographics;
-    const flag = getFlagEmoji(countryName);
+    const flag = demographics?.flag || "🌍";
 
     // Format helpers
     const fmt = (n) => n != null ? Number(n).toLocaleString() : "N/A";
@@ -474,20 +529,28 @@
       <div class="cei-body">
 
         <!-- Demographics -->
-        <div class="cei-section-title">Demographics</div>
+        <div class="cei-section-title">Demographics · REST Countries</div>
         <div class="cei-stats-grid">
-          <div class="cei-stat">
+           <div class="cei-stat">
             <div class="cei-stat-value">${demo ? fmt(demo.population) : "N/A"}</div>
             <div class="cei-stat-label">Population</div>
+          </div>
+           <div class="cei-stat">
+            <div class="cei-stat-value">${demo ? fmt(demo?.area) : "N/A"}</div>
+            <div class="cei-stat-label">Area (km²)</div>
           </div>
           <div class="cei-stat">
             <div class="cei-stat-value">${demo?.density != null ? parseFloat(demo.density).toFixed(1) : "N/A"}</div>
             <div class="cei-stat-label">Density (per km²)</div>
           </div>
+          <div class="cei-stat">
+            <div class="cei-stat-value">${demo ? demo?.capital : "N/A"}</div>
+            <div class="cei-stat-label">Capital</div>
+          </div>
         </div>
 
         <!-- COVID-19 -->
-        ${covid ? `
+        ${covid && settings.showCovid ? `
         <div class="cei-divider"></div>
         <div class="cei-section-title">COVID-19 · disease.sh</div>
         <div class="cei-covid-grid">
@@ -522,13 +585,20 @@
         </div>` : ""}
 
         <!-- WHO Outbreaks -->
+        ${outbreaks && settings.showWHO ? `
         <div class="cei-divider"></div>
         <div class="cei-section-title">WHO Outbreak Alerts</div>
-        <div class="cei-outbreak-list">${outbreakHTML}</div>
+        <div class="cei-outbreak-list">${outbreakHTML}</div>` : ""}
 
       </div>
 
-      <div class="cei-footer">Sources: World Bank · disease.sh · WHO</div>
+      <div class="cei-footer" style="display:flex;justify-content:space-between;align-items:center;">
+        <a href="https://him97kr.github.io/geoquery-dashboard" target="_blank"
+           style="color:#00e5a0;text-decoration:none;font-size:9px;opacity:0.9;"
+           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.9">
+          🌍 GeoQuery Dashboard →
+        </a>
+      </div>
     `;
   }
 
@@ -537,7 +607,6 @@
     tooltip.innerHTML = `
       <div class="cei-header">
         <span class="cei-country-name">${countryName}</span>
-        <span class="cei-flag">${getFlagEmoji(countryName)}</span>
       </div>
       <div class="cei-error">Failed to load data. Check your connection.</div>
     `;
@@ -551,35 +620,35 @@
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
-  function getFlagEmoji(countryName) {
-    const flags = {
-      "Afghanistan": "🇦🇫", "Albania": "🇦🇱", "Algeria": "🇩🇿", "Argentina": "🇦🇷",
-      "Armenia": "🇦🇲", "Australia": "🇦🇺", "Austria": "🇦🇹", "Azerbaijan": "🇦🇿",
-      "Bangladesh": "🇧🇩", "Belgium": "🇧🇪", "Bolivia": "🇧🇴", "Brazil": "🇧🇷",
-      "Bulgaria": "🇧🇬", "Cambodia": "🇰🇭", "Canada": "🇨🇦", "Chile": "🇨🇱",
-      "China": "🇨🇳", "Colombia": "🇨🇴", "Croatia": "🇭🇷", "Cuba": "🇨🇺",
-      "Czech Republic": "🇨🇿", "Denmark": "🇩🇰", "Ecuador": "🇪🇨", "Egypt": "🇪🇬",
-      "Ethiopia": "🇪🇹", "Finland": "🇫🇮", "France": "🇫🇷", "Germany": "🇩🇪",
-      "Ghana": "🇬🇭", "Greece": "🇬🇷", "Guatemala": "🇬🇹", "Hungary": "🇭🇺",
-      "India": "🇮🇳", "Indonesia": "🇮🇩", "Iran": "🇮🇷", "Iraq": "🇮🇶",
-      "Ireland": "🇮🇪", "Israel": "🇮🇱", "Italy": "🇮🇹", "Japan": "🇯🇵",
-      "Jordan": "🇯🇴", "Kazakhstan": "🇰🇿", "Kenya": "🇰🇪", "Kuwait": "🇰🇼",
-      "Lebanon": "🇱🇧", "Libya": "🇱🇾", "Malaysia": "🇲🇾", "Mexico": "🇲🇽",
-      "Morocco": "🇲🇦", "Myanmar": "🇲🇲", "Nepal": "🇳🇵", "Netherlands": "🇳🇱",
-      "New Zealand": "🇳🇿", "Nigeria": "🇳🇬", "North Korea": "🇰🇵", "Norway": "🇳🇴",
-      "Oman": "🇴🇲", "Pakistan": "🇵🇰", "Peru": "🇵🇪", "Philippines": "🇵🇭",
-      "Poland": "🇵🇱", "Portugal": "🇵🇹", "Qatar": "🇶🇦", "Romania": "🇷🇴",
-      "Russia": "🇷🇺", "Saudi Arabia": "🇸🇦", "Serbia": "🇷🇸", "Singapore": "🇸🇬",
-      "Somalia": "🇸🇴", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Spain": "🇪🇸",
-      "Sri Lanka": "🇱🇰", "Sudan": "🇸🇩", "Sweden": "🇸🇪", "Switzerland": "🇨🇭",
-      "Syria": "🇸🇾", "Taiwan": "🇹🇼", "Tanzania": "🇹🇿", "Thailand": "🇹🇭",
-      "Tunisia": "🇹🇳", "Turkey": "🇹🇷", "Uganda": "🇺🇬", "Ukraine": "🇺🇦",
-      "United Arab Emirates": "🇦🇪", "United Kingdom": "🇬🇧", "United States": "🇺🇸",
-      "Venezuela": "🇻🇪", "Vietnam": "🇻🇳", "Yemen": "🇾🇪", "Zambia": "🇿🇲",
-      "Zimbabwe": "🇿🇼"
-    };
-    return flags[countryName] || "🌍";
-  }
+  // function getFlagEmoji(countryName) {
+  //   const flags = {
+  //     "Afghanistan": "🇦🇫", "Albania": "🇦🇱", "Algeria": "🇩🇿", "Argentina": "🇦🇷",
+  //     "Armenia": "🇦🇲", "Australia": "🇦🇺", "Austria": "🇦🇹", "Azerbaijan": "🇦🇿",
+  //     "Bangladesh": "🇧🇩", "Belgium": "🇧🇪", "Bolivia": "🇧🇴", "Brazil": "🇧🇷",
+  //     "Bulgaria": "🇧🇬", "Cambodia": "🇰🇭", "Canada": "🇨🇦", "Chile": "🇨🇱",
+  //     "China": "🇨🇳", "Colombia": "🇨🇴", "Croatia": "🇭🇷", "Cuba": "🇨🇺",
+  //     "Czech Republic": "🇨🇿", "Denmark": "🇩🇰", "Ecuador": "🇪🇨", "Egypt": "🇪🇬",
+  //     "Ethiopia": "🇪🇹", "Finland": "🇫🇮", "France": "🇫🇷", "Germany": "🇩🇪",
+  //     "Ghana": "🇬🇭", "Greece": "🇬🇷", "Guatemala": "🇬🇹", "Hungary": "🇭🇺",
+  //     "India": "🇮🇳", "Indonesia": "🇮🇩", "Iran": "🇮🇷", "Iraq": "🇮🇶",
+  //     "Ireland": "🇮🇪", "Israel": "🇮🇱", "Italy": "🇮🇹", "Japan": "🇯🇵",
+  //     "Jordan": "🇯🇴", "Kazakhstan": "🇰🇿", "Kenya": "🇰🇪", "Kuwait": "🇰🇼",
+  //     "Lebanon": "🇱🇧", "Libya": "🇱🇾", "Malaysia": "🇲🇾", "Mexico": "🇲🇽",
+  //     "Morocco": "🇲🇦", "Myanmar": "🇲🇲", "Nepal": "🇳🇵", "Netherlands": "🇳🇱",
+  //     "New Zealand": "🇳🇿", "Nigeria": "🇳🇬", "North Korea": "🇰🇵", "Norway": "🇳🇴",
+  //     "Oman": "🇴🇲", "Pakistan": "🇵🇰", "Peru": "🇵🇪", "Philippines": "🇵🇭",
+  //     "Poland": "🇵🇱", "Portugal": "🇵🇹", "Qatar": "🇶🇦", "Romania": "🇷🇴",
+  //     "Russia": "🇷🇺", "Saudi Arabia": "🇸🇦", "Serbia": "🇷🇸", "Singapore": "🇸🇬",
+  //     "Somalia": "🇸🇴", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Spain": "🇪🇸",
+  //     "Sri Lanka": "🇱🇰", "Sudan": "🇸🇩", "Sweden": "🇸🇪", "Switzerland": "🇨🇭",
+  //     "Syria": "🇸🇾", "Taiwan": "🇹🇼", "Tanzania": "🇹🇿", "Thailand": "🇹🇭",
+  //     "Tunisia": "🇹🇳", "Turkey": "🇹🇷", "Uganda": "🇺🇬", "Ukraine": "🇺🇦",
+  //     "United Arab Emirates": "🇦🇪", "United Kingdom": "🇬🇧", "United States": "🇺🇸",
+  //     "Venezuela": "🇻🇪", "Vietnam": "🇻🇳", "Yemen": "🇾🇪", "Zambia": "🇿🇲",
+  //     "Zimbabwe": "🇿🇼"
+  //   };
+  //   return flags[countryName] || "🌍";
+  // }
 
   function formatDate(dateStr) {
     if (!dateStr) return "";

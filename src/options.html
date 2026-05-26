@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoVitals — Options</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #0a0a0f;
+      --surface:  #13131a;
+      --border:   #1e1e2e;
+      --accent:   #00e5a0;
+      --accent-d: #00a06e;
+      --text:     #f0f0f5;
+      --muted:    #b4b4f9;
+      --red:      #ff4d6d;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      padding: 40px 0;
+    }
+
+    .page {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+    .header-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .header-version {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 32px;
+    }
+    .section-title {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    /* Toggle row */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 13px; color: var(--text); }
+    .toggle-desc  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .toggle-switch {
+      position: relative;
+      width: 40px; height: 22px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(18px); }
+
+    /* Country exclusion */
+    .exclusion-input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .exclusion-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .exclusion-input:focus { border-color: var(--accent); }
+    .exclusion-input::placeholder { color: var(--muted); }
+
+    .btn-add {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-add:hover { background: var(--accent-d); }
+
+    .exclusion-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 32px;
+    }
+    .exclusion-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px 4px 12px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .exclusion-remove {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.2s;
+    }
+    .exclusion-remove:hover { color: var(--red); }
+    .exclusion-empty {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* Keyboard shortcut display */
+    .shortcut-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 0;
+    }
+    .kbd {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .shortcut-desc {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Save button */
+    .save-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .btn-save {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-save:hover { background: var(--accent-d); }
+    .save-msg {
+      font-size: 11px;
+      color: var(--accent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .save-msg.show { opacity: 1; }
+
+    /* Footer */
+    .options-footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .options-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-dot"></div>
+      <span class="header-title">GeoVitals Options</span>
+      <span class="header-version">v1.1.0</span>
+    </div>
+
+    <!-- General settings -->
+    <div class="section">
+      <div class="section-title">General</div>
+      <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Show COVID-19 data</div>
+            <div class="toggle-desc">Display COVID cases, deaths and active in tooltip</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="showCovid" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Show WHO outbreak alerts</div>
+            <div class="toggle-desc">Display WHO disease outbreak news in tooltip</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="showWHO" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Highlight hyperlinks</div>
+            <div class="toggle-desc">Detect country names inside anchor tags</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="highlightLinks" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Country exclusion list -->
+    <div class="section">
+      <div class="section-title">Excluded Countries</div>
+      <div class="card">
+        <div class="exclusion-input-row">
+          <input
+            type="text"
+            class="exclusion-input"
+            id="exclusionInput"
+            placeholder="Type a country name and press Add..."
+          />
+          <button class="btn-add" id="addExclusion">Add</button>
+        </div>
+        <div class="exclusion-list" id="exclusionList">
+          <span class="exclusion-empty" id="exclusionEmpty">
+            No countries excluded — all country names will be highlighted.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard shortcut -->
+    <div class="section">
+      <div class="section-title">Keyboard Shortcut</div>
+      <div class="card">
+        <div class="shortcut-display">
+          <span class="kbd">Alt</span>
+          <span style="color:var(--muted)">+</span>
+          <span class="kbd">G</span>
+          <span class="shortcut-desc">— Toggle GeoVitals on / off on any page</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">
+          To change the shortcut: chrome://extensions/shortcuts
+        </div>
+      </div>
+    </div>
+
+    <!-- Save -->
+    <div class="save-row">
+      <button class="btn-save" id="saveBtn">Save Settings</button>
+      <span class="save-msg" id="saveMsg">✓ Settings saved</span>
+    </div>
+
+    <!-- Footer -->
+    <div class="options-footer">
+      <span>GeoVitals v1.1.0</span>
+      <a href="https://him97kr.github.io/geoquery-dashboard" target="_blank">
+        🌍 GeoQuery Dashboard →
+      </a>
+    </div>
+
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

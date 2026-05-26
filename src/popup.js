@@ -1,39 +1,46 @@
-// ─── DOM References ───────────────────────────────────────────────────────────
-const toggleBtn    = document.getElementById("toggleBtn");
-const statusLabel  = document.getElementById("statusLabel");
-const statusSub    = document.getElementById("statusSub");
-const statusText   = document.getElementById("statusText");
-const logoDot      = document.getElementById("logoDot");
-const ringProgress = document.getElementById("ringProgress");
-const statCard1    = document.getElementById("statCard1");
-const statCard2    = document.getElementById("statCard2");
-const sessionTime  = document.getElementById("sessionTime");
-const currentTab   = document.getElementById("currentTab");
+// popup.js — GeoVitals v1.1.0
 
-// ─── State ────────────────────────────────────────────────────────────────────
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const toggleBtn = document.getElementById("toggleBtn");
+const statusLabel = document.getElementById("statusLabel");
+const statusSub = document.getElementById("statusSub");
+const statusText = document.getElementById("statusText");
+const logoDot = document.getElementById("logoDot");
+const ringProgress = document.getElementById("ringProgress");
+const statCard1 = document.getElementById("statCard1");
+const statCard2 = document.getElementById("statCard2");
+const sessionTime = document.getElementById("sessionTime");
+const optionsLink = document.getElementById("optionsLink");
+const currentTab = document.getElementById("currentTab");
+const lastCountryCard = document.getElementById("lastCountryCard");
+const lastCountryName = document.getElementById("lastCountryName");
+const lastCountryMeta = document.getElementById("lastCountryMeta");
+const geoqueryLink = document.getElementById("geoqueryLink");
+
+// ── State ─────────────────────────────────────────────────────────────────────
 let isEnabled = true;
 let sessionStart = Date.now();
 let sessionTimer = null;
 
-// ─── Load saved state from chrome.storage ────────────────────────────────────
-chrome.storage.sync.get(["extensionEnabled", "sessionStart"], (result) => {
-  isEnabled = result.extensionEnabled !== undefined ? result.extensionEnabled : true;
-  sessionStart = result.sessionStart || Date.now();
-  updateUI(isEnabled);
-  startSessionTimer();
-});
+// ── Load saved state ──────────────────────────────────────────────────────────
+chrome.storage.sync.get(
+  ["extensionEnabled", "sessionStart", "lastCountry"],
+  (result) => {
+    isEnabled = result.extensionEnabled !== undefined ? result.extensionEnabled : true;
+    sessionStart = result.sessionStart || Date.now();
+    updateUI(isEnabled);
+    startSessionTimer();
+    renderLastCountry(result.lastCountry || null);
+  }
+);
 
-// ─── Toggle click handler ─────────────────────────────────────────────────────
+// ── Toggle ────────────────────────────────────────────────────────────────────
 toggleBtn.addEventListener("click", () => {
   isEnabled = !isEnabled;
-
-  // Save state
   chrome.storage.sync.set({
     extensionEnabled: isEnabled,
     sessionStart: isEnabled ? Date.now() : null,
   });
-
-  // Reset session timer
   if (isEnabled) {
     sessionStart = Date.now();
     startSessionTimer();
@@ -41,68 +48,101 @@ toggleBtn.addEventListener("click", () => {
     clearInterval(sessionTimer);
     sessionTime.textContent = "00:00";
   }
-
-  // Notify content script on active tab
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]?.id) {
       chrome.tabs.sendMessage(tabs[0].id, {
         action: "toggleExtension",
         enabled: isEnabled,
-      }).catch(() => {
-        // Content script may not be injected on this tab — safe to ignore
-      });
+      }).catch(() => { });
     }
   });
-
   updateUI(isEnabled);
 });
 
-// ─── Update UI based on state ─────────────────────────────────────────────────
+// ── Update UI ─────────────────────────────────────────────────────────────────
 function updateUI(enabled) {
   if (enabled) {
-    // ON state
     toggleBtn.classList.add("on");
     toggleBtn.classList.remove("off");
     statusLabel.classList.remove("off");
     logoDot.classList.remove("off");
     ringProgress.classList.remove("off");
-
-    statusLabel.textContent  = "ACTIVE";
-    statusSub.textContent    = "Extension is running";
-    statusText.textContent   = "Enabled";
-
+    statusLabel.textContent = "ACTIVE";
+    statusSub.textContent = "Extension is running";
+    statusText.textContent = "Enabled";
     statCard1.classList.add("active");
     statCard2.classList.add("active");
   } else {
-    // OFF state
     toggleBtn.classList.remove("on");
     toggleBtn.classList.add("off");
     statusLabel.classList.add("off");
     logoDot.classList.add("off");
     ringProgress.classList.add("off");
-
-    statusLabel.textContent  = "PAUSED";
-    statusSub.textContent    = "Extension is disabled";
-    statusText.textContent   = "Disabled";
-
+    statusLabel.textContent = "PAUSED";
+    statusSub.textContent = "Extension is disabled";
+    statusText.textContent = "Disabled";
     statCard1.classList.remove("active");
     statCard2.classList.remove("active");
   }
 }
 
-// ─── Session Timer ────────────────────────────────────────────────────────────
+// ── Session timer ─────────────────────────────────────────────────────────────
 function startSessionTimer() {
   clearInterval(sessionTimer);
   sessionTimer = setInterval(() => {
     if (!isEnabled) return;
     const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
-    const mins    = String(Math.floor(elapsed / 60)).padStart(2, "0");
-    const secs    = String(elapsed % 60).padStart(2, "0");
+    const mins = String(Math.floor(elapsed / 60)).padStart(2, "0");
+    const secs = String(elapsed % 60).padStart(2, "0");
     sessionTime.textContent = `${mins}:${secs}`;
   }, 1000);
 }
 
-// ─── Show current tab hostname ────────────────────────────────────────────────
+// ── Last hovered country ──────────────────────────────────────────────────────
+function renderLastCountry(country) {
+  if (!country) {
+    lastCountryName.innerHTML = '<span class="last-country-empty">Hover a country to see data</span>';
+    lastCountryMeta.textContent = "";
+    lastCountryCard.style.cursor = "default";
+    return;
+  }
+
+  const fmt = (n) => {
+    if (!n) return "N/A";
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+    return n.toLocaleString();
+  };
+
+  lastCountryName.innerHTML = `
+    <span>${country.demographics?.flag || "🌍"}</span>
+    <span>${country.countryName}</span>
+  `;
+  lastCountryMeta.textContent =
+    `Population: ${fmt(country.demographics?.population)} · Density: ${country.demographics?.density ? country.demographics.density.toFixed(1) + "/km²" : "N/A"}`;
+
+  // Clicking opens GeoQuery dashboard filtered to this country
+  lastCountryCard.style.cursor = "pointer";
+  lastCountryCard.onclick = () => {
+    chrome.tabs.create({
+      url: `https://him97kr.github.io/geoquery-dashboard/country/${country.demographics?.countryCode || ""}`,
+    });
+  };
+}
+
+// Listen for last country updates from content script
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.lastCountry) {
+    renderLastCountry(changes.lastCountry.newValue);
+  }
+});
+
+// ── Options page ──────────────────────────────────────────────────────────────
+optionsLink.addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
+
+// ── Current tab hostname ──────────────────────────────────────────────────────
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   if (tabs[0]?.url) {
     try {
@@ -112,4 +152,10 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       currentTab.textContent = "active tab";
     }
   }
+});
+
+// ── GeoQuery link ─────────────────────────────────────────────────────────────
+geoqueryLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: "https://him97kr.github.io/geoquery-dashboard" });
 });
