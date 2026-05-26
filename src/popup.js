@@ -107,19 +107,17 @@ function renderLastCountry(country) {
     return;
   }
 
-  const fmt = (n) => {
-    if (!n) return "N/A";
-    if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
-    if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
-    return n.toLocaleString();
-  };
+  const fmt = (n) => n != null ? Number(n).toLocaleString() : "N/A";
 
   lastCountryName.innerHTML = `
     <span>${country.demographics?.flag || "🌍"}</span>
     <span>${country.countryName}</span>
   `;
-  lastCountryMeta.textContent =
-    `Population: ${fmt(country.demographics?.population)} · Density: ${country.demographics?.density ? country.demographics.density.toFixed(1) + "/km²" : "N/A"}`;
+  lastCountryMeta.innerHTML =
+    `<div>Population : <span>${fmt(country.demographics?.population)}</span></div>
+      <div>Area (km²) : <span>${fmt(country.demographics?.area)}</span></div>
+      <div>Density (per km²) : <span>${country.demographics?.density ? country.demographics.density.toFixed(1) + "/km²" : "N/A"}</span></div>
+      <div>Capital : <span>${country.demographics?.capital || "N/A"}</span></div>`;
 
   // Clicking opens GeoQuery dashboard filtered to this country
   lastCountryCard.style.cursor = "pointer";
