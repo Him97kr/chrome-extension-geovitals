@@ -109,7 +109,7 @@ async function getRestCountriesData(countryName) {
       area: c.area ?? null,
       density: c.density ?? null,
       capital: c.capital ? c.capital[0] : null,
-      flag: c.flag?.emoji || "🌍",
+      flag: c.flag ? `<img height="20" width="30" src="${c.flag?.svg}" alt="${c.flag?.alt}" />` : "🌍",
     };
     const common = c.name?.common?.toLowerCase();
     const official = c.name?.official?.toLowerCase();

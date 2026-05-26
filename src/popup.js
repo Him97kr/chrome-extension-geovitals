@@ -110,7 +110,7 @@ function renderLastCountry(country) {
   const fmt = (n) => n != null ? Number(n).toLocaleString() : "N/A";
 
   lastCountryName.innerHTML = `
-    <span>${country.demographics?.flag || "🌍"}</span>
+    <span>${country.demographics?.flag}</span>
     <span>${country.countryName}</span>
   `;
   lastCountryMeta.innerHTML =
