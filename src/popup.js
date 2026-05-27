@@ -123,7 +123,11 @@ function renderLastCountry(country) {
   lastCountryCard.style.cursor = "pointer";
   lastCountryCard.onclick = () => {
     chrome.tabs.create({
-      url: `https://him97kr.github.io/geoquery-dashboard/country/${country.demographics?.countryCode || ""}`,
+      // Use ?redirect= pattern so GitHub Pages 404.html redirects correctly
+      // React Router picks this up via the index.html redirect script
+      url: country.demographics?.countryCode
+        ? `https://him97kr.github.io/geoquery-dashboard/?redirect=/country/${country.demographics.countryCode}`
+        : `https://him97kr.github.io/geoquery-dashboard/`,
     });
   };
 }

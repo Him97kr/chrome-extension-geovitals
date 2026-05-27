@@ -593,10 +593,11 @@
       </div>
 
       <div class="cei-footer" style="display:flex;justify-content:space-between;align-items:center;">
-        <a href="https://him97kr.github.io/geoquery-dashboard" target="_blank"
-           style="color:#00e5a0;text-decoration:none;font-size:9px;opacity:0.9;"
-           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.9">
-          🌍 GeoQuery Dashboard →
+        <a href="https://him97kr.github.io/geoquery-dashboard/?redirect=/country/${demo?.countryCode || ''}"
+           target="_blank"
+           style="color:#00e5a0;text-decoration:none;font-size:9px;opacity:0.8;"
+           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
+          🌍 Full Analytics →
         </a>
       </div>
     `;

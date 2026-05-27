@@ -1,7 +1,7 @@
 {
-  "name": "GeoVitals",
+  "name": "GeoVitals — Country Stats on Hover",
   "version": "1.1.0",
-  "description": "GeoVitals Chrome Extension",
+  "description": "GeoVitals — Country Intelligence Chrome Extension",
   "main": "index.js",
   "scripts": {
     "webpack-local": "webpack-dev-server",
