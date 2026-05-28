@@ -1,6 +1,6 @@
 # 🌍 GeoVitals — Country Stats on Hover
 
-> Hover over any country name on any webpage to instantly see population, density, area, capital city, COVID-19 statistics and WHO disease outbreak alerts.
+> Hover over any country name on any webpage to instantly see Demographics information, COVID-19 statistics and WHO disease outbreak alerts.
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/igkoiddcpkagiijomnmcadchopdnmlje?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=00e5a0)](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
 
@@ -11,6 +11,10 @@
 | Popup | Country Tooltip |
 |---|---|
 | ![Popup](public/popup.png) | ![Tooltip](public/tooltip.png) |
+
+| Options |
+|---|
+| ![Options](public/options.png) |
 
 ## 🎬 Demo
 
