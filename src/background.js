@@ -9,14 +9,33 @@ const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const cache = {
   restCountries: { data: null, timestamp: 0 },
-  covid:         { data: null, timestamp: 0 },
-  outbreaks:     { data: null, timestamp: 0 },
+  covid: { data: null, timestamp: 0 },
+  outbreaks: { data: null, timestamp: 0 },
 };
 
 // ─── Install ──────────────────────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.sync.set({ extensionEnabled: true });
   console.log("[BG] Extension installed.");
+});
+
+// ─── Keyboard shortcut Alt+G ──────────────────────────────────────────────────
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "toggle-extension") {
+    chrome.storage.sync.get("extensionEnabled", (result) => {
+      const newState = !(result.extensionEnabled !== false);
+      chrome.storage.sync.set({ extensionEnabled: newState });
+      // Notify active tab content script
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: "toggleExtension",
+            enabled: newState,
+          }).catch(() => { });
+        }
+      });
+    });
+  }
 });
 
 // ─── Message handler ──────────────────────────────────────────────────────────
@@ -53,13 +72,16 @@ async function handleCountryDataRequest(countryName) {
 
   const demographics = rcResult.status === "fulfilled" ? rcResult.value : null;
 
-  return {
+  const countryData = {
     countryName,
     demographics,
-    covid:     covidResult.status    === "fulfilled" ? covidResult.value    : null,
+    covid: covidResult.status === "fulfilled" ? covidResult.value : null,
     outbreaks: outbreakResult.status === "fulfilled" ? outbreakResult.value : [],
     fetchedAt: new Date().toISOString(),
   };
+
+  chrome.storage.sync.set({ lastCountry: countryData });
+  return countryData;
 }
 
 // ─── restcountries.com v4 — population + density ─────────────────────────────
@@ -71,7 +93,7 @@ async function getRestCountriesData(countryName) {
     return findInRestCountries(cache.restCountries.data, countryName);
   }
 
-  const url = "https://restcountries.com/v4/all?fields=name,population,density";
+  const url = "https://restcountries.com/v4/all?fields=name,population,density,area,capital,flag,cca3";
   const response = await fetch(url);
   if (!response.ok) throw new Error(`restcountries API error: ${response.status}`);
 
@@ -81,13 +103,17 @@ async function getRestCountriesData(countryName) {
   const map = {};
   raw.forEach((c) => {
     const entry = {
-      country:    c.name?.common,
-      population: c.population  ?? null,
-      density:    c.density     ?? null,
+      country: c.name?.common,
+      countryCode: c.cca3 || null,
+      population: c.population ?? null,
+      area: c.area ?? null,
+      density: c.density ?? null,
+      capital: c.capital ? c.capital[0] : null,
+      flag: c.flag ? `<img height="20" width="30" src="${c.flag?.svg}" alt="${c.flag?.alt}" />` : "🌍",
     };
-    const common   = c.name?.common?.toLowerCase();
+    const common = c.name?.common?.toLowerCase();
     const official = c.name?.official?.toLowerCase();
-    if (common)   map[common]   = entry;
+    if (common) map[common] = entry;
     if (official && official !== common) map[official] = entry;
   });
 
@@ -137,19 +163,19 @@ function findInCovid(data, countryName) {
   if (!match) return null;
 
   return {
-    country:          match.country,
-    cases:            match.cases,
-    todayCases:       match.todayCases,
-    deaths:           match.deaths,
-    todayDeaths:      match.todayDeaths,
-    recovered:        match.recovered,
-    active:           match.active,
-    critical:         match.critical,
-    casesPerMillion:  match.casesPerOneMillion,
+    country: match.country,
+    cases: match.cases,
+    todayCases: match.todayCases,
+    deaths: match.deaths,
+    todayDeaths: match.todayDeaths,
+    recovered: match.recovered,
+    active: match.active,
+    critical: match.critical,
+    casesPerMillion: match.casesPerOneMillion,
     deathsPerMillion: match.deathsPerOneMillion,
-    tests:            match.tests,
-    testsPerMillion:  match.testsPerOneMillion,
-    updated:          match.updated,
+    tests: match.tests,
+    testsPerMillion: match.testsPerOneMillion,
+    updated: match.updated,
   };
 }
 
@@ -183,15 +209,15 @@ function filterOutbreaks(items, countryName) {
 
   return items
     .filter((item) => {
-      const title   = (item.Title   || "").toLowerCase();
+      const title = (item.Title || "").toLowerCase();
       const summary = (item.Summary || "").toLowerCase();
       return title.includes(q) || summary.includes(q);
     })
     .slice(0, 5)
     .map((item) => ({
-      title:   item.Title,
-      date:    item.PublicationDateAndTime,
-      url:     item.Url || item.UrlName,
+      title: item.Title,
+      date: item.PublicationDateAndTime,
+      url: item.Url || item.UrlName,
       summary: item.Summary?.slice(0, 200),
     }));
 }

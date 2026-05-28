@@ -13,6 +13,7 @@ module.exports = {
         popup: "./src/popup.js",         // React popup
         background: "./src/background.js", // Vanilla JS background script
         content: "./src/content.js",      // Vanilla JS content script
+        options: "./src/options.js",      // Vanilla JS options script
     },
 
     // ─── Output ─────────────────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ module.exports = {
         new CopyWebpackPlugin({
             patterns: [
                 { from: 'src/manifest.json', to: '[name].[ext]' },
+                { from: 'src/options.html', to: '[name].[ext]' },
                 { from: 'src/content.js', to: '[name].[ext]' },
                 { from: 'src/background.js', to: '[name].[ext]' },
                 { from: 'src/*.png', to: '[name].[ext]' }
