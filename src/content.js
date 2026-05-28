@@ -599,6 +599,11 @@
            onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
           🌍 Full Analytics →
         </a>
+        <a href="https://github.com/Him97kr" target="_blank" 
+          style="color:#b4b4f9;text-decoration:none;font-size:9px;opacity:0.8;"
+          onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
+          by Himanshu
+        </a>
       </div>
     `;
   }

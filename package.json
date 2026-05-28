@@ -1,7 +1,7 @@
 {
-  "name": "GeoVitals — Country Stats on Hover",
+  "name": "GeoVitals - Country Stats on Hover",
   "version": "1.1.0",
-  "description": "GeoVitals — Country Intelligence Chrome Extension",
+  "description": "Hover over any country name to instantly see population, density, area, capital city, COVID-19 stats and WHO disease outbreak alerts.",
   "main": "index.js",
   "scripts": {
     "webpack-local": "webpack-dev-server",
