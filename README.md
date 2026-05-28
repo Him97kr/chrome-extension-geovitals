@@ -6,19 +6,15 @@
 
 ---
 
-## 📸 Screenshots
-
-| Popup | Country Tooltip |
-|---|---|
-| ![Popup](public/popup.png) | ![Tooltip](public/tooltip.png) |
-
-| Options |
-|---|
-| ![Options](public/options.png) |
-
 ## 🎬 Demo
 
 ![GeoVitals Demo](public/demo.gif)
+
+## 📸 Screenshots
+
+| Popup | Country Tooltip | Options |
+|---|---|---|
+| ![Popup](public/popup.png) | ![Tooltip](public/tooltip.png) | ![Options](public/options.png) |
 
 ---
 
@@ -40,7 +36,7 @@
 
 ### From Chrome Web Store *(recommended)*
 
-[![Available in the Chrome Web Store](https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/UV4C4ybeBTsZt43U4xis.png)](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
+[Available in the Chrome Web Store](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
 
 ### From Source (Developer Mode)
 
@@ -189,7 +185,7 @@ Tooltip renders
 
 | Project | Description |
 |---|---|
-| [GeoQuery Dashboard](https://him97kr.github.io/geoquery-dashboard) | Full country analytics dashboard — React + Redux + D3.js |
+| [GeoQuery Dashboard](https://github.com/Him97kr/geoquery-dashboard) | Full country analytics dashboard — React + Redux + D3.js |
 | [GeoQuery API](https://github.com/Him97kr/geoquery) | GraphQL API in Go powering the dashboard |
 | [World Population Dashboard](https://github.com/Him97kr/world-population-dashboard) | D3.js population visualisation |
 
