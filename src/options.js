@@ -1,4 +1,4 @@
-// options.js — GeoVitals v1.1.0
+// options.js — GeoVitals v1.1.1
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const showCovidToggle    = document.getElementById("showCovid");

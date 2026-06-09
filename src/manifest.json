@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "GeoVitals - Country Stats on Hover",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Hover over any country name to instantly see Demographics information, COVID-19 stats and WHO disease outbreak alerts.",
     "icons": {
         "16": "16.png",
@@ -53,6 +53,8 @@
     "host_permissions": [
         "https://restcountries.com/*",
         "https://disease.sh/*",
-        "https://www.who.int/*"
+        "https://www.who.int/*",
+        "https://jsdelivr.net/*",
+        "https://news.google.com/*"
     ]
 }
