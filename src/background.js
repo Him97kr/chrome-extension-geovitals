@@ -116,13 +116,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 async function handleCountryDataRequest(countryName, baseCountry) {
-  const [rcResult, covidResult, outbreakResult, visaResult, newsResult] =
+  const [rcResult, covidResult, outbreakResult, visaResult, newsResult, currencyResult] =
     await Promise.allSettled([
       getRestCountriesData(countryName),
       getCovidData(countryName),
       getOutbreakData(countryName),
       baseCountry ? getVisaData(baseCountry, countryName) : Promise.resolve(null),
       getNewsData(countryName, baseCountry),
+      baseCountry ? getCurrencyData(baseCountry, countryName) : Promise.resolve(null),
     ]);
 
   const demographics = rcResult.status === "fulfilled" ? rcResult.value : null;
@@ -134,6 +135,7 @@ async function handleCountryDataRequest(countryName, baseCountry) {
     outbreaks: outbreakResult.status === "fulfilled" ? outbreakResult.value : [],
     visa: visaResult.status === "fulfilled" ? visaResult.value : null,
     news: newsResult.status === "fulfilled" ? newsResult.value : [],
+    currency: currencyResult.status === "fulfilled" ? currencyResult.value : null,
     fetchedAt: new Date().toISOString(),
   };
 
@@ -434,5 +436,87 @@ async function getNewsData(countryName, baseCountry) {
   } catch (err) {
     console.error("[BG] getNewsData error:", err);
     return [];
+  }
+}
+
+// ─── Currency Converter (jsdelivr fawazahmed0 API) ────────────────────────────
+// Resolves base ISO2 → currency code, dest country → currency code,
+// then fetches 1 base unit = X dest rate.
+// Data URL: https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/{base}.json
+// Cache TTL: 30 min (rates are daily snapshots so this is fine)
+
+const CURRENCY_CACHE_TTL_MS = 30 * 60 * 1000;
+const currencyCache = {};  // keyed by baseCurrencyCode
+
+// ISO2 → currency code map
+const ISO2_TO_CURRENCY = {
+  US: "usd", GB: "gbp", IN: "inr", AU: "aud", CA: "cad", DE: "eur", FR: "eur",
+  IT: "eur", ES: "eur", NL: "eur", BE: "eur", PT: "eur", AT: "eur", FI: "eur",
+  IE: "eur", GR: "eur", LU: "eur", SI: "eur", SK: "eur", EE: "eur", LV: "eur",
+  LT: "eur", CY: "eur", MT: "eur", BR: "brl", MX: "mxn", JP: "jpy", CN: "cny",
+  RU: "rub", KR: "krw", IN: "inr", NG: "ngn", ZA: "zar", EG: "egp", SA: "sar",
+  AE: "aed", TR: "try", PK: "pkr", BD: "bdt", PH: "php", ID: "idr", TH: "thb",
+  VN: "vnd", PL: "pln", SE: "sek", NO: "nok", DK: "dkk", CH: "chf", SG: "sgd",
+  MY: "myr", NZ: "nzd", HK: "hkd", IL: "ils", UA: "uah", AR: "ars", CL: "clp",
+  CO: "cop", PE: "pen", KE: "kes", ET: "etb", GH: "ghs", TZ: "tzs", MA: "mad",
+  DZ: "dzd", TN: "tnd", KW: "kwd", QA: "qar", BH: "bhd", OM: "omr", JO: "jod",
+  LB: "lbp", IQ: "iqd", IR: "irr", PY: "pyg", UY: "uyu", BO: "bob", EC: "usd",
+  GT: "gtq", CR: "crc", PA: "usd", DO: "dop", CU: "cup", JM: "jmd", TT: "ttd",
+  HN: "hnl", SV: "usd", NI: "nio", HU: "huf", CZ: "czk", RO: "ron", BG: "bgn",
+  HR: "eur", RS: "rsd", BA: "bam", ME: "eur", MK: "mkd", AL: "all", MD: "mdl",
+  BY: "byr", GE: "gel", AM: "amd", AZ: "azn", KZ: "kzt", UZ: "uzs", TM: "tmt",
+  KG: "kgs", TJ: "tjs", MN: "mnt", NP: "npr", LK: "lkr", MM: "mmk", KH: "khr",
+  LA: "lak", BN: "bnd", TW: "twd", AF: "afn", LY: "lyd", SD: "sdg", SO: "sos",
+  ZW: "zwl", ZM: "zmw", MZ: "mzn", AO: "aoa", CD: "cdf", CG: "xaf", CM: "xaf",
+  GA: "xaf", TD: "xaf", CF: "xaf", GQ: "xaf", SN: "xof", CI: "xof", ML: "xof",
+  BF: "xof", NE: "xof", BJ: "xof", TG: "xof", GN: "gnf", MG: "mga", RW: "rwf",
+  BI: "bif", UG: "ugx", MW: "mwk", NA: "nad", BW: "bwp", SZ: "szl", LS: "lsl",
+  FJ: "fjd", PG: "pgk", SB: "sbd", VU: "vuv", WS: "wst", TO: "top",
+};
+
+async function getCurrencyData(baseISO2, destCountryName) {
+  if (!baseISO2) return null;
+
+  const baseCur = ISO2_TO_CURRENCY[baseISO2.toUpperCase()];
+  if (!baseCur) return null;
+
+  // Resolve destination ISO2, then its currency
+  const destISO2 = await resolveISO2(destCountryName);
+  if (!destISO2) return null;
+  const destCur = ISO2_TO_CURRENCY[destISO2.toUpperCase()];
+  if (!destCur) return null;
+
+  // Same currency — no conversion needed, signal to show "Same currency" card
+  if (baseCur === destCur) {
+    return { same: true, baseCur, destCur };
+  }
+
+  const now = Date.now();
+  // Check per-currency cache
+  if (
+    currencyCache[baseCur] &&
+    now - currencyCache[baseCur].timestamp < CURRENCY_CACHE_TTL_MS
+  ) {
+    const rate = currencyCache[baseCur].data[destCur];
+    return rate != null ? { rate, baseCur, destCur } : null;
+  }
+
+  try {
+    const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${baseCur}.json`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Currency API HTTP ${response.status}`);
+    const json = await response.json();
+
+    // Shape: { date: "...", [baseCur]: { usd: 0.012, eur: 0.011, ... } }
+    const rates = json[baseCur];
+    if (!rates) return null;
+
+    currencyCache[baseCur] = { data: rates, timestamp: now };
+
+    const rate = rates[destCur];
+    return rate != null ? { rate, baseCur, destCur } : null;
+  } catch (err) {
+    console.error("[BG] getCurrencyData error:", err);
+    return null;
   }
 }

@@ -237,7 +237,7 @@
         flex-direction: column;
         gap: 5px;
       }  
-      .cei-covid-value  { font-size: 11px; font-weight: 500; color: #e8e8f0; line-height: 1.2; }
+      .cei-covid-value  { font-size: 11px; font-weight: 600; color: #00e5a0; line-height: 1.2; }
       .cei-covid-label  { font-size: 9px; color: #b4b4f9; text-transform: uppercase; letter-spacing: 0.06em; }
 
       /* Outbreak alerts */
@@ -297,18 +297,18 @@
         grid-column: 1 / -1;
       }
       .cei-visa-status {
-        font-size: 10px;
-        font-weight: 500;
+        font-size: 11px;
+        font-weight: 600;
         line-height: 1.2;
         margin-bottom: 4px;
         text-transform: uppercase;
       }
       .cei-visa-status.free     { color: #00e5a0; }
       .cei-visa-status.arrival  { color: #f5c842; }
-      .cei-visa-status.evisa    { color: #78b4ff; }
-      .cei-visa-status.required { color: #ff4d6d; }
-      .cei-visa-status.home     { color: #b4b4f9; }
-      .cei-visa-status.unknown  { color: #b4b4f9; }
+      .cei-visa-status.evisa    { color: #6ab0ff; }
+      .cei-visa-status.required { color: #fe6c6c; }
+      .cei-visa-status.home     { color: #ffffff; }
+      .cei-visa-status.unknown  { color: #ffffff; }
       .cei-visa-card-label {
         font-size: 9px;
         color: #b4b4f9;
@@ -548,7 +548,7 @@
   }
 
   // ─── Render tooltip content ──────────────────────────────────────────────────
-  function renderTooltip({ countryName, demographics, covid, outbreaks, visa, news }) {
+  function renderTooltip({ countryName, demographics, covid, outbreaks, visa, news, currency }) {
     if (!tooltip) return;
 
     const demo = demographics;
@@ -567,7 +567,7 @@
           <div class="cei-section-title">Visa Requirement</div>
           <div class="cei-visa-main">
           <div class="cei-visa-grid">
-            <div class="cei-visa-card full">
+            <div class="cei-visa-card">
               <div class="cei-visa-status unknown">⚠ Data unavailable</div>
               <div class="cei-visa-card-label">Entry Status</div>
             </div>
@@ -589,7 +589,7 @@
           <div class="cei-section-title">Visa Requirement</div>
           <div class="cei-visa-main">
           <div class="cei-visa-grid">
-            <div class="cei-visa-card full">
+            <div class="cei-visa-card">
               <div class="cei-visa-status home">🏠 Home Country</div>
               <div class="cei-visa-card-label">No visa needed</div>
             </div>
@@ -628,20 +628,22 @@
       return `
         <div class="cei-divider"></div>
         <div class="cei-section-title">Visa Requirement</div>
-        <div class="cei-visa-main">
-        <div class="cei-visa-grid">
+        <div class="cei-visa-grid" style="margin-bottom: 14px;">
           <div class="cei-visa-card">
             <div class="cei-visa-status ${statusClass}">${icon} ${label}</div>
             <div class="cei-visa-card-label">${durLabel}</div>
           </div>
           <div class="cei-visa-card">
-            <div class="cei-visa-status">${baseLabel}</div>
+            <div class="cei-visa-status ${statusClass}">${baseLabel}</div>
             <div class="cei-visa-card-label">Passport</div>
           </div>
-        </div>
-        <div class="cei-visa-change-container" data-action="change-passport">
-          <div class="cei-visa-change">⚙ Select your country</div>
-        </div>
+          <div class="cei-visa-card">
+            <div class="cei-visa-status ${statusClass}">1 ${currency?.baseCur} = ${currency?.rate.toFixed(3)} ${currency?.destCur}</div>
+            <div class="cei-visa-card-label">Currency Rate</div>
+          </div>
+          <div class="cei-visa-card" data-action="change-passport" style="cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <div class="cei-visa-card-label">⚙ Change Country</div>
+          </div>
         </div>
         `;
     })();
