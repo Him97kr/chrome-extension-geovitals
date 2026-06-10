@@ -558,24 +558,44 @@
         return `
           <div class="cei-divider"></div>
           <div class="cei-section-title">Visa Requirement</div>
+          <div class="cei-visa-main">
           <div class="cei-visa-grid">
             <div class="cei-visa-card full">
               <div class="cei-visa-status unknown">⚠ Data unavailable</div>
-              <div class="cei-visa-card-label">Passport: ${baseLabel} · <a class="cei-visa-change" data-action="change-passport">change</a></div>
+              <div class="cei-visa-card-label">Entry Status</div>
             </div>
-          </div>`;
+            <div class="cei-visa-card">
+              <div class="cei-visa-status">${baseLabel}</div>
+              <div class="cei-visa-card-label">Passport</div>
+            </div>
+          </div>
+          <div class="cei-visa-change-container" data-action="change-passport">
+            <div class="cei-visa-change">⚙ Select your country</div>
+          </div>
+          </div>
+          `;
       }
 
       if (visa.access === "home") {
         return `
           <div class="cei-divider"></div>
           <div class="cei-section-title">Visa Requirement</div>
+          <div class="cei-visa-main">
           <div class="cei-visa-grid">
             <div class="cei-visa-card full">
               <div class="cei-visa-status home">🏠 Home Country</div>
               <div class="cei-visa-card-label">No visa needed</div>
             </div>
-          </div>`;
+            <div class="cei-visa-card">
+              <div class="cei-visa-status">${baseLabel}</div>
+              <div class="cei-visa-card-label">Passport</div>
+            </div>
+          </div>
+          <div class="cei-visa-change-container" data-action="change-passport">
+            <div class="cei-visa-change">⚙ Select your country</div>
+          </div>
+          </div>
+          `;
       }
 
       const accessNorm = (visa.access || "").toLowerCase().trim();
@@ -659,7 +679,7 @@
       <div class="cei-body">
 
         <!-- Demographics -->
-        <div class="cei-section-title">Demographics · REST Countries</div>
+        <div class="cei-section-title">Demographics</div>
         <div class="cei-stats-grid">
           <div class="cei-stat">
             <div class="cei-stat-value">${demo ? fmt(demo.population) : "N/A"}</div>
@@ -682,10 +702,20 @@
         <!-- Visa -->
         ${visaHTML}
 
+        <!-- News -->
+        ${newsHTML}
+
+        <!-- WHO Outbreaks -->
+        ${outbreaks && settings.showWHO ? `
+        <div class="cei-divider"></div>
+        <div class="cei-section-title">WHO Outbreak Alerts</div>
+        <div class="cei-outbreak-list">${outbreakHTML}</div>` : ""}
+
         <!-- COVID-19 -->
         ${covid && settings.showCovid ? `
         <div class="cei-divider"></div>
-        <div class="cei-section-title">COVID-19 · disease.sh</div>
+        <div class="cei-divider"></div>
+        <div class="cei-section-title">COVID-19 Statistics</div>
         <div class="cei-covid-grid">
           <div class="cei-covid-card">
             <span class="cei-covid-icon">🦠</span>
@@ -716,15 +746,6 @@
             </div>
           </div>
         </div>` : ""}
-
-        <!-- WHO Outbreaks -->
-        ${outbreaks && settings.showWHO ? `
-        <div class="cei-divider"></div>
-        <div class="cei-section-title">WHO Outbreak Alerts</div>
-        <div class="cei-outbreak-list">${outbreakHTML}</div>` : ""}
-
-        <!-- News -->
-        ${newsHTML}
 
       </div>
 
