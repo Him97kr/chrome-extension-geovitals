@@ -227,8 +227,16 @@
         padding: 8px 10px;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
       }
+      .cei-covid-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 5px;
+      }  
       .cei-covid-icon   { font-size: 16px; flex-shrink: 0; }
       .cei-covid-value  { font-size: 11px; font-weight: 500; color: #e8e8f0; line-height: 1.2; }
       .cei-covid-label  { font-size: 9px; color: #b4b4f9; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -718,31 +726,15 @@
         <div class="cei-section-title">COVID-19 Statistics</div>
         <div class="cei-covid-grid">
           <div class="cei-covid-card">
-            <span class="cei-covid-icon">🦠</span>
             <div class="cei-covid-info">
               <div class="cei-covid-value">${fmt(covid.cases)}</div>
               <div class="cei-covid-label">Total Cases</div>
             </div>
           </div>
           <div class="cei-covid-card">
-            <span class="cei-covid-icon">💀</span>
             <div class="cei-covid-info">
               <div class="cei-covid-value">${fmt(covid.deaths)}</div>
               <div class="cei-covid-label">Deaths</div>
-            </div>
-          </div>
-          <div class="cei-covid-card">
-            <span class="cei-covid-icon">⚡</span>
-            <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.active)}</div>
-              <div class="cei-covid-label">Active</div>
-            </div>
-          </div>
-          <div class="cei-covid-card">
-            <span class="cei-covid-icon">🏥</span>
-            <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.critical)}</div>
-              <div class="cei-covid-label">Critical</div>
             </div>
           </div>
         </div>` : ""}

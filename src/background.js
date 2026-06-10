@@ -122,7 +122,7 @@ async function handleCountryDataRequest(countryName, baseCountry) {
       getCovidData(countryName),
       getOutbreakData(countryName),
       baseCountry ? getVisaData(baseCountry, countryName) : Promise.resolve(null),
-      getNewsData(countryName),
+      getNewsData(countryName, baseCountry),
     ]);
 
   const demographics = rcResult.status === "fulfilled" ? rcResult.value : null;
@@ -331,20 +331,73 @@ async function resolveISO2(countryName) {
   }
 }
 
+// ─── ISO2 → Google News locale params ────────────────────────────────────────
+// Maps ISO2 country code to { gl, hl, ceid } for the Google News RSS URL.
+// Falls back to en-US/US if not listed.
+function getNewsLocale(iso2) {
+  const map = {
+    US: { gl: "US", hl: "en-US", ceid: "US:en" },
+    GB: { gl: "GB", hl: "en-GB", ceid: "GB:en" },
+    IN: { gl: "IN", hl: "en-IN", ceid: "IN:en" },
+    AU: { gl: "AU", hl: "en-AU", ceid: "AU:en" },
+    CA: { gl: "CA", hl: "en-CA", ceid: "CA:en" },
+    DE: { gl: "DE", hl: "de", ceid: "DE:de" },
+    FR: { gl: "FR", hl: "fr", ceid: "FR:fr" },
+    IT: { gl: "IT", hl: "it", ceid: "IT:it" },
+    ES: { gl: "ES", hl: "es", ceid: "ES:es" },
+    BR: { gl: "BR", hl: "pt-BR", ceid: "BR:pt-419" },
+    MX: { gl: "MX", hl: "es-419", ceid: "MX:es-419" },
+    JP: { gl: "JP", hl: "ja", ceid: "JP:ja" },
+    CN: { gl: "CN", hl: "zh-CN", ceid: "CN:zh-Hans" },
+    RU: { gl: "RU", hl: "ru", ceid: "RU:ru" },
+    KR: { gl: "KR", hl: "ko", ceid: "KR:ko" },
+    NG: { gl: "NG", hl: "en-NG", ceid: "NG:en" },
+    ZA: { gl: "ZA", hl: "en-ZA", ceid: "ZA:en" },
+    EG: { gl: "EG", hl: "ar", ceid: "EG:ar" },
+    SA: { gl: "SA", hl: "ar", ceid: "SA:ar" },
+    AE: { gl: "AE", hl: "ar", ceid: "AE:ar" },
+    TR: { gl: "TR", hl: "tr", ceid: "TR:tr" },
+    PK: { gl: "PK", hl: "en-PK", ceid: "PK:en" },
+    BD: { gl: "BD", hl: "bn", ceid: "BD:bn" },
+    PH: { gl: "PH", hl: "en-PH", ceid: "PH:en" },
+    ID: { gl: "ID", hl: "id", ceid: "ID:id" },
+    TH: { gl: "TH", hl: "th", ceid: "TH:th" },
+    VN: { gl: "VN", hl: "vi", ceid: "VN:vi" },
+    PL: { gl: "PL", hl: "pl", ceid: "PL:pl" },
+    NL: { gl: "NL", hl: "nl", ceid: "NL:nl" },
+    SE: { gl: "SE", hl: "sv", ceid: "SE:sv" },
+    NO: { gl: "NO", hl: "no", ceid: "NO:no" },
+    PT: { gl: "PT", hl: "pt-PT", ceid: "PT:pt-150" },
+    AR: { gl: "AR", hl: "es-419", ceid: "AR:es-419" },
+    SG: { gl: "SG", hl: "en-SG", ceid: "SG:en" },
+    MY: { gl: "MY", hl: "en-MY", ceid: "MY:en" },
+    NZ: { gl: "NZ", hl: "en-NZ", ceid: "NZ:en" },
+    UA: { gl: "UA", hl: "uk", ceid: "UA:uk" },
+    IL: { gl: "IL", hl: "he", ceid: "IL:he" },
+    GR: { gl: "GR", hl: "el", ceid: "GR:el" },
+    HU: { gl: "HU", hl: "hu", ceid: "HU:hu" },
+    CZ: { gl: "CZ", hl: "cs", ceid: "CZ:cs" },
+    RO: { gl: "RO", hl: "ro", ceid: "RO:ro" },
+  };
+  return map[iso2?.toUpperCase()] || { gl: "US", hl: "en-US", ceid: "US:en" };
+}
+
 // ─── Google News RSS — News Context ──────────────────────────────────────────
 // NOTE: DOMParser / querySelectorAll are NOT available in MV3 service workers.
 // We parse the RSS XML with regex instead.
-async function getNewsData(countryName) {
+async function getNewsData(countryName, baseCountry) {
   const now = Date.now();
-  const cacheKey = countryName.toLowerCase().trim();
+  // Include baseCountry in cache key — different passport = different locale = different results
+  const cacheKey = `${countryName.toLowerCase().trim()}_${(baseCountry || "US").toUpperCase()}`;
 
   if (cache.news[cacheKey] && now - cache.news[cacheKey].timestamp < CACHE_TTL_NEWS_MS) {
     return cache.news[cacheKey].data;
   }
 
+  const { gl, hl, ceid } = getNewsLocale(baseCountry);
   try {
     const query = encodeURIComponent(`"${countryName}"`);
-    const url = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
+    const url = `https://news.google.com/rss/search?q=${query}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Google News RSS error: ${response.status}`);
 
