@@ -1,22 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GeoVitals — Options</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap"
+    rel="stylesheet" />
   <style>
     :root {
-      --bg:       #0a0a0f;
-      --surface:  #13131a;
-      --border:   #1e1e2e;
-      --accent:   #00e5a0;
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #1e1e2e;
+      --accent: #00e5a0;
       --accent-d: #00a06e;
-      --text:     #f0f0f5;
-      --muted:    #b4b4f9;
-      --red:      #ff4d6d;
+      --text: #f0f0f5;
+      --muted: #b4b4f9;
+      --red: #ff4d6d;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       background: var(--bg);
@@ -41,18 +48,21 @@
       padding-bottom: 20px;
       border-bottom: 1px solid var(--border);
     }
+
     .header-dot {
-      width: 10px; height: 10px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: var(--accent);
       box-shadow: 0 0 10px var(--accent);
     }
+
     .header-title {
       font-family: 'Syne', sans-serif;
       font-size: 20px;
       font-weight: 600;
-      color: var(--text);
     }
+
     .header-version {
       font-size: 11px;
       color: var(--muted);
@@ -63,6 +73,7 @@
     .section {
       margin-bottom: 32px;
     }
+
     .section-title {
       font-size: 11px;
       color: var(--muted);
@@ -87,15 +98,35 @@
       padding: 10px 0;
       border-bottom: 1px solid var(--border);
     }
-    .toggle-row:last-child { border-bottom: none; }
-    .toggle-label { font-size: 13px; color: var(--text); }
-    .toggle-desc  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    .toggle-row:last-child {
+      border-bottom: none;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .toggle-desc {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
     .toggle-switch {
       position: relative;
-      width: 40px; height: 22px;
+      width: 40px;
+      height: 22px;
       flex-shrink: 0;
     }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
     .slider {
       position: absolute;
       inset: 0;
@@ -104,17 +135,93 @@
       cursor: pointer;
       transition: background 0.3s;
     }
+
     .slider::before {
       content: '';
       position: absolute;
-      width: 16px; height: 16px;
-      left: 3px; top: 3px;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      top: 3px;
       background: white;
       border-radius: 50%;
       transition: transform 0.3s;
     }
-    input:checked + .slider { background: var(--accent); }
-    input:checked + .slider::before { transform: translateX(18px); }
+
+    input:checked+.slider {
+      background: var(--accent);
+    }
+
+    input:checked+.slider::before {
+      transform: translateX(18px);
+    }
+
+    /* Base country selector */
+    .passport-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .passport-select {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b4b4f9' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+
+    .passport-select:focus {
+      border-color: var(--accent);
+    }
+
+    .passport-select option {
+      background: #13131a;
+      color: var(--text);
+    }
+
+    .btn-detect {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 14px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-detect:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-detect:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .passport-hint {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
 
     /* Country exclusion */
     .exclusion-input-row {
@@ -122,6 +229,7 @@
       gap: 8px;
       margin-bottom: 14px;
     }
+
     .exclusion-input {
       flex: 1;
       background: var(--bg);
@@ -134,8 +242,14 @@
       outline: none;
       transition: border-color 0.2s;
     }
-    .exclusion-input:focus { border-color: var(--accent); }
-    .exclusion-input::placeholder { color: var(--muted); }
+
+    .exclusion-input:focus {
+      border-color: var(--accent);
+    }
+
+    .exclusion-input::placeholder {
+      color: var(--muted);
+    }
 
     .btn-add {
       background: var(--accent);
@@ -149,7 +263,10 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-add:hover { background: var(--accent-d); }
+
+    .btn-add:hover {
+      background: var(--accent-d);
+    }
 
     .exclusion-list {
       display: flex;
@@ -157,6 +274,7 @@
       gap: 8px;
       min-height: 32px;
     }
+
     .exclusion-tag {
       display: flex;
       align-items: center;
@@ -168,6 +286,7 @@
       font-size: 12px;
       color: var(--text);
     }
+
     .exclusion-remove {
       background: none;
       border: none;
@@ -178,20 +297,25 @@
       padding: 0;
       transition: color 0.2s;
     }
-    .exclusion-remove:hover { color: var(--red); }
+
+    .exclusion-remove:hover {
+      color: var(--red);
+    }
+
     .exclusion-empty {
       font-size: 11px;
       color: var(--muted);
       font-style: italic;
     }
 
-    /* Keyboard shortcut display */
+    /* Keyboard shortcut */
     .shortcut-display {
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 12px 0;
     }
+
     .kbd {
       background: var(--bg);
       border: 1px solid var(--border);
@@ -200,18 +324,20 @@
       font-size: 13px;
       color: var(--accent);
     }
+
     .shortcut-desc {
       font-size: 12px;
       color: var(--muted);
     }
 
-    /* Save button */
+    /* Save */
     .save-row {
       display: flex;
       align-items: center;
       gap: 12px;
       margin-top: 8px;
     }
+
     .btn-save {
       background: var(--accent);
       color: var(--bg);
@@ -224,14 +350,21 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-save:hover { background: var(--accent-d); }
+
+    .btn-save:hover {
+      background: var(--accent-d);
+    }
+
     .save-msg {
       font-size: 11px;
       color: var(--accent);
       opacity: 0;
       transition: opacity 0.3s;
     }
-    .save-msg.show { opacity: 1; }
+
+    .save-msg.show {
+      opacity: 1;
+    }
 
     /* Footer */
     .options-footer {
@@ -244,13 +377,14 @@
       font-size: 10px;
       color: var(--muted);
     }
+
     .options-footer a {
       color: var(--accent);
       text-decoration: none;
-      transition: opacity 0.2s;
     }
   </style>
 </head>
+
 <body>
   <div class="page">
 
@@ -261,10 +395,46 @@
       <span class="header-version">v1.1.1</span>
     </div>
 
+    <!-- Passport / Base Country -->
+    <div class="section">
+      <div class="section-title">Your Passport Country</div>
+      <div class="card">
+        <div class="passport-row">
+          <select class="passport-select" id="baseCountrySelect">
+            <option value="">— Select your passport country —</option>
+          </select>
+          <button class="btn-detect" id="detectCountryBtn">Auto-detect</button>
+        </div>
+        <div class="passport-hint">
+          Used to show visa requirements when you hover a country. Auto-detect reads your browser locale.
+        </div>
+      </div>
+    </div>
+
     <!-- General settings -->
     <div class="section">
       <div class="section-title">General</div>
       <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Show Visa Requirements</div>
+            <div class="toggle-desc">Display visa status for your passport in tooltip</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="showVisa" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Show News Context</div>
+            <div class="toggle-desc">Show 5 recent Google News headlines per country</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="showNews" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
         <div class="toggle-row">
           <div>
             <div class="toggle-label">Show COVID-19 data</div>
@@ -303,12 +473,8 @@
       <div class="section-title">Excluded Countries</div>
       <div class="card">
         <div class="exclusion-input-row">
-          <input
-            type="text"
-            class="exclusion-input"
-            id="exclusionInput"
-            placeholder="Type a country name and press Add..."
-          />
+          <input type="text" class="exclusion-input" id="exclusionInput"
+            placeholder="Type a country name and press Add…" />
           <button class="btn-add" id="addExclusion">Add</button>
         </div>
         <div class="exclusion-list" id="exclusionList">
@@ -352,4 +518,5 @@
   </div>
   <script src="options.js"></script>
 </body>
+
 </html>

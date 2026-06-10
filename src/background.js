@@ -3,7 +3,7 @@
 //   - restcountries.com v4 : population, density        (no key, always current)
 //   - disease.sh           : COVID-19 stats by country  (no key)
 //   - WHO API              : disease outbreak news      (no key)
-//   - passport-index API   : visa requirements          (no key)
+//   - passport-index CDN   : visa requirements          (no key)
 //   - Google News RSS      : recent news headlines      (no key)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -14,9 +14,12 @@ const cache = {
   restCountries: { data: null, timestamp: 0 },
   covid: { data: null, timestamp: 0 },
   outbreaks: { data: null, timestamp: 0 },
-  visa: { data: null, timestamp: 0 },  // keyed by baseCountry ISO2
-  news: {},                             // keyed by countryName
+  visa: {},   // FIX: keyed by "BASE_DEST" string, not a single object
+  news: {},   // keyed by countryName
 };
+
+// Separate top-level cache for the full passport index JSON (fetched once)
+let passportDataCache = { data: null, timestamp: 0 };
 
 // ─── Install ──────────────────────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(() => {
@@ -32,28 +35,27 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("[BG] Extension installed.");
 });
 
+// ─── Locale → ISO2 via chrome.i18n (MV3-compliant) ───────────────────────────
 async function detectCountry() {
   try {
-    // e.g. "en-IN" → "IN", "zh-CN" → "CN", "en-US" → "US"
     const languages = await new Promise((resolve) => {
       chrome.i18n.getAcceptLanguages((list) => resolve(list || []));
     });
+    // Fallback: navigator.language if chrome.i18n returns nothing
     if (languages.length === 0 && navigator.language) {
       languages.push(navigator.language);
     }
     for (const locale of languages) {
-      if (locale.includes('-')) {
-        const countryCode = locale.split('-')[1].toUpperCase();
-        // Ensure it's a standard 2-letter country code (ignores variant scripts like 'en-US-variant')
-        if (countryCode.length === 2) {
-          return countryCode;
-        }
+      if (locale.includes("-")) {
+        const countryCode = locale.split("-")[1].toUpperCase();
+        // Only accept 2-letter region codes (ignore script tags like zh-Hant-TW)
+        if (countryCode.length === 2) return countryCode;
       }
     }
-    return "US"; // Fallback to US if no valid country code found
-  } catch {
+    return "US"; // Safe fallback
+  } catch (error) {  // FIX: was `catch {` — `error` was undefined in the body
     console.error("Failed to auto-detect country:", error);
-    return "US"; // Safe default
+    return "US";
   }
 }
 
@@ -102,6 +104,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     detectCountry().then((detected) => {
       sendResponse({ iso2: detected });
     });
+    return true;
+  }
+
+  // FIX: added — needed for "Change passport →" link in the tooltip
+  if (action === "openOptionsPage") {
+    chrome.runtime.openOptionsPage();
     return true;
   }
 });
@@ -255,51 +263,63 @@ function filterOutbreaks(items, countryName) {
     }));
 }
 
+// ─── Passport Index (jsdelivr CDN) — Visa Requirements ───────────────────────
+// Data shape: { "IN": { "JP": { status: "visa free", days: 90 }, ... }, ... }
+const PASSPORT_DATA_URL =
+  "https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json";
+
 async function getVisaData(baseCountry, destCountry) {
   const base = await resolveISO2(baseCountry);
   const dest = await resolveISO2(destCountry);
-  if (!dest) return null;
+  if (!dest) return null;   // FIX: was returning error strings, now always null
+  if (!base) return null;
   if (dest.toUpperCase() === base.toUpperCase()) {
     return { access: "home", dest, base };
   }
+
   const cacheKey = `${base}_${dest}`;
   const now = Date.now();
-  if (
-    cache.visa[cacheKey] &&
-    now - cache.visa[cacheKey].timestamp < CACHE_TTL_MS
-  ) {
+
+  if (cache.visa[cacheKey] && now - cache.visa[cacheKey].timestamp < CACHE_TTL_MS) {
     return cache.visa[cacheKey].data;
   }
+
   try {
-    const PASSPORT_DATA_URL = 'https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json';
-    const response = await fetch(PASSPORT_DATA_URL);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const json = await response.json();
-    // Drill down: Passport Country -> Destination Country
-    if (json[base]) {
-      if (json[base][dest]) {
-        const access = json[base][dest]?.status || null;
-        const result = {
-          access: access,
-          dest,
-          base,
-          // days allowed for visa-free / VoA, if the API returns it
-          dur: json[base][dest]?.days ?? null,
-        };
-        cache.visa[cacheKey] = { data: result, timestamp: now };
-        return result;
-      }
-      return "No data found for this destination.";
+    // FIX: fetch full passport index once into passportDataCache (30 min TTL)
+    // instead of re-fetching on every hover
+    if (!passportDataCache.data || now - passportDataCache.timestamp > CACHE_TTL_MS) {
+      const response = await fetch(PASSPORT_DATA_URL);
+      if (!response.ok) throw new Error(`Passport index HTTP ${response.status}`);
+      passportDataCache = { data: await response.json(), timestamp: now };
     }
-    return "Invalid or unsupported passport country code.";
-  } catch {
+
+    const json = passportDataCache.data;
+
+    if (!json[base]) return null;  // FIX: was returning string
+    const entry = json[base][dest];
+    if (!entry) return null;  // FIX: was returning string
+
+    const result = {
+      access: entry.status ?? null,
+      dest,
+      base,
+      dur: entry.days ?? null,
+    };
+
+    cache.visa[cacheKey] = { data: result, timestamp: now };
+    return result;
+  } catch (err) {
+    console.error("[BG] getVisaData error:", err);
     return null;
   }
 }
 
-
 async function resolveISO2(countryName) {
-  // Make sure restcountries cache is warm
+  if (!countryName) return null;
+  // Already a 2-letter ISO2 code — pass straight through
+  if (typeof countryName === "string" && countryName.length === 2) {
+    return countryName.toUpperCase();
+  }
   try {
     if (!cache.restCountries.data) {
       await getRestCountriesData(countryName);
@@ -312,15 +332,13 @@ async function resolveISO2(countryName) {
 }
 
 // ─── Google News RSS — News Context ──────────────────────────────────────────
-// Fetches Google News RSS for the country, parses titles + links from XML
+// NOTE: DOMParser / querySelectorAll are NOT available in MV3 service workers.
+// We parse the RSS XML with regex instead.
 async function getNewsData(countryName) {
   const now = Date.now();
   const cacheKey = countryName.toLowerCase().trim();
 
-  if (
-    cache.news[cacheKey] &&
-    now - cache.news[cacheKey].timestamp < CACHE_TTL_NEWS_MS
-  ) {
+  if (cache.news[cacheKey] && now - cache.news[cacheKey].timestamp < CACHE_TTL_NEWS_MS) {
     return cache.news[cacheKey].data;
   }
 
@@ -331,25 +349,37 @@ async function getNewsData(countryName) {
     if (!response.ok) throw new Error(`Google News RSS error: ${response.status}`);
 
     const text = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(text, "application/xml");
-    const items = Array.from(doc.querySelectorAll("item")).slice(0, 5);
 
-    const news = items.map((item) => {
-      const title = item.querySelector("title")?.textContent || "";
-      const link = item.querySelector("link")?.textContent || "";
-      const pubDate = item.querySelector("pubDate")?.textContent || "";
-      const source = item.querySelector("source")?.textContent || "";
+    // Extract all <item>…</item> blocks
+    const itemBlocks = [];
+    const itemRe = /<item>([\s\S]*?)<\/item>/g;
+    let m;
+    while ((m = itemRe.exec(text)) !== null && itemBlocks.length < 5) {
+      itemBlocks.push(m[1]);
+    }
 
-      // Google News wraps real URL in the link; clean up title suffix "- Source"
-      const cleanTitle = title.replace(/\s*-\s*[^-]+$/, "").trim();
+    // Helper: pull first tag value, stripping CDATA wrappers
+    function extractTag(block, tag) {
+      const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\/${tag}>`, "i");
+      const hit = re.exec(block);
+      if (!hit) return "";
+      return hit[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim();
+    }
 
-      return { title: cleanTitle, link, pubDate, source };
+    const news = itemBlocks.map((block) => {
+      const rawTitle = extractTag(block, "title");
+      const link = extractTag(block, "link");
+      const pubDate = extractTag(block, "pubDate");
+      const source = extractTag(block, "source");
+      // Strip trailing " - Source Name" appended by Google News
+      const title = rawTitle.replace(/\s*-\s*[^-]+$/, "").trim();
+      return { title, link, pubDate, source };
     });
 
     cache.news[cacheKey] = { data: news, timestamp: now };
     return news;
-  } catch {
+  } catch (err) {
+    console.error("[BG] getNewsData error:", err);
     return [];
   }
 }
