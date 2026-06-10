@@ -330,39 +330,19 @@
       color: var(--muted);
     }
 
-    /* Save */
-    .save-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 8px;
-    }
-
-    .btn-save {
-      background: var(--accent);
-      color: var(--bg);
-      border: none;
-      border-radius: 8px;
-      padding: 10px 24px;
-      font-family: 'DM Mono', monospace;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .btn-save:hover {
-      background: var(--accent-d);
-    }
-
-    .save-msg {
+    /* Saved indicator */
+    .saved-indicator {
       font-size: 11px;
       color: var(--accent);
       opacity: 0;
       transition: opacity 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 0;
     }
 
-    .save-msg.show {
+    .saved-indicator.show {
       opacity: 1;
     }
 
@@ -501,11 +481,8 @@
       </div>
     </div>
 
-    <!-- Save -->
-    <div class="save-row">
-      <button class="btn-save" id="saveBtn">Save Settings</button>
-      <span class="save-msg" id="saveMsg">✓ Settings saved</span>
-    </div>
+    <!-- Saved indicator -->
+    <div class="saved-indicator" id="savedIndicator">✓ Settings saved automatically</div>
 
     <!-- Footer -->
     <div class="options-footer">

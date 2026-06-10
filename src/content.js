@@ -267,45 +267,63 @@
         padding: 8px 0;
       }
 
-      /* ── Visa badge ─────────────────────────────────────── */
-      .cei-visa-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+      /* ── Visa grid ──────────────────────────────────────── */
+      .cei-visa-main {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 8px;
         margin-bottom: 14px;
       }
-      .cei-visa-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
+      .cei-visa-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
-      .cei-visa-badge.free      { background: rgba(0,229,160,0.12); color: #00e5a0; border: 1px solid rgba(0,229,160,0.3); }
-      .cei-visa-badge.arrival   { background: rgba(245,200,66,0.12); color: #f5c842; border: 1px solid rgba(245,200,66,0.3); }
-      .cei-visa-badge.evisa     { background: rgba(120,180,255,0.12); color: #78b4ff; border: 1px solid rgba(120,180,255,0.3); }
-      .cei-visa-badge.eta       { background: rgba(120, 120, 255, 0.13); color: #7886ff; border: 1px solid rgba(120, 149, 255, 0.3); }
-      .cei-visa-badge.required  { background: rgba(255,77,109,0.12); color: #ff4d6d; border: 1px solid rgba(255,77,109,0.3); }
-      .cei-visa-badge.home      { background: rgba(180,180,249,0.10); color: #b4b4f9; border: 1px solid rgba(180,180,249,0.2); }
-      .cei-visa-badge.unknown   { background: rgba(180,180,249,0.10); color: #b4b4f9; border: 1px solid rgba(180,180,249,0.2); }
-      .cei-visa-passport {
+      .cei-visa-card {
+        background: #13131e;
+        border: 1px solid #1a1a2e;
+        border-radius: 8px;
+        padding: 10px 8px;
+        text-align: center;
+      }
+      .cei-visa-card.full {
+        grid-column: 1 / -1;
+      }
+      .cei-visa-status {
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 1.2;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+      }
+      .cei-visa-status.free     { color: #00e5a0; }
+      .cei-visa-status.arrival  { color: #f5c842; }
+      .cei-visa-status.evisa    { color: #78b4ff; }
+      .cei-visa-status.required { color: #ff4d6d; }
+      .cei-visa-status.home     { color: #b4b4f9; }
+      .cei-visa-status.unknown  { color: #b4b4f9; }
+      .cei-visa-card-label {
         font-size: 9px;
         color: #b4b4f9;
-        text-align: right;
-        line-height: 1.4;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .cei-visa-change-container{
+        background: #13131e;
+        border: 1px solid #1a1a2e;
+        border-radius: 8px;
+        padding: 10px 8px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
       }
       .cei-visa-change {
-        font-size: 9px;
-        color: #00e5a0;
-        cursor: pointer;
-        text-decoration: underline;
-        margin-top: 2px;
-        display: block;
+        font-size: 11px;
+        color: #b4b4f9;
+        text-transform: uppercase;
       }
-      .cei-visa-change:hover { color: #00ffb3; }
 
       /* ── News items ─────────────────────────────────────── */
       .cei-news-list {
@@ -540,11 +558,10 @@
         return `
           <div class="cei-divider"></div>
           <div class="cei-section-title">Visa Requirement</div>
-          <div class="cei-visa-row">
-            <span class="cei-visa-badge unknown">⚠ Data unavailable</span>
-            <div class="cei-visa-passport">
-              Passport: <strong>${baseLabel}</strong>
-              <a class="cei-visa-change" data-action="change-passport">Change passport →</a>
+          <div class="cei-visa-grid">
+            <div class="cei-visa-card full">
+              <div class="cei-visa-status unknown">⚠ Data unavailable</div>
+              <div class="cei-visa-card-label">Passport: ${baseLabel} · <a class="cei-visa-change" data-action="change-passport">change</a></div>
             </div>
           </div>`;
       }
@@ -553,39 +570,53 @@
         return `
           <div class="cei-divider"></div>
           <div class="cei-section-title">Visa Requirement</div>
-          <div class="cei-visa-row">
-            <span class="cei-visa-badge home">🏠 Home country</span>
+          <div class="cei-visa-grid">
+            <div class="cei-visa-card full">
+              <div class="cei-visa-status home">🏠 Home Country</div>
+              <div class="cei-visa-card-label">No visa needed</div>
+            </div>
           </div>`;
       }
 
       const accessNorm = (visa.access || "").toLowerCase().trim();
-      let badgeClass = "unknown";
+      let statusClass = "unknown";
       let icon = "❓";
       let label = visa.access || "Unknown";
+      let durLabel = "";
 
       if (accessNorm.includes("visa free")) {
-        badgeClass = "free"; icon = "✅"; label = "Visa Free";
-        if (visa.dur && visa.dur !== "-1") label += ` · ${visa.dur} days`;
-      } else if (accessNorm.includes("visa on arrival")) {
-        badgeClass = "arrival"; icon = "🛬"; label = "Visa on Arrival";
-      } else if (accessNorm.includes("e-visa")) {
-        badgeClass = "evisa"; icon = "💻"; label = "eVisa";
-      } else if (accessNorm.includes("eta")) {
-        badgeClass = "eta"; icon = "💻"; label = "ETA";
-      } else if (accessNorm.includes("visa required")) {
-        badgeClass = "required"; icon = "🚫"; label = "Visa Required";
+        statusClass = "free"; icon = "✅"; label = "Visa Free";
+        durLabel = (visa.dur && visa.dur !== "-1") ? `${visa.dur} days` : "No limit";
+      } else if (accessNorm.includes("on arrival")) {
+        statusClass = "arrival"; icon = "🛬"; label = "Visa on Arrival";
+        durLabel = "At border";
+      } else if (accessNorm.includes("e-visa") || accessNorm.includes("evisa") || accessNorm.includes("eta")) {
+        statusClass = "evisa"; icon = "💻"; label = "eVisa / ETA";
+        durLabel = "Apply online";
+      } else if (accessNorm.includes("required")) {
+        statusClass = "required"; icon = "🚫"; label = "Visa Required";
+        durLabel = "Embassy required";
       }
 
       return `
         <div class="cei-divider"></div>
         <div class="cei-section-title">Visa Requirement</div>
-        <div class="cei-visa-row">
-          <span class="cei-visa-badge ${badgeClass}">${icon} ${label}</span>
-          <div class="cei-visa-passport">
-            Passport: <strong>${baseLabel}</strong>
-            <a class="cei-visa-change" data-action="change-passport">Change passport →</a>
+        <div class="cei-visa-main">
+        <div class="cei-visa-grid">
+          <div class="cei-visa-card">
+            <div class="cei-visa-status ${statusClass}">${icon} ${label}</div>
+            <div class="cei-visa-card-label">${durLabel}</div>
           </div>
-        </div>`;
+          <div class="cei-visa-card">
+            <div class="cei-visa-status">${baseLabel}</div>
+            <div class="cei-visa-card-label">Passport</div>
+          </div>
+        </div>
+        <div class="cei-visa-change-container" data-action="change-passport">
+          <div class="cei-visa-change">⚙ Select your country</div>
+        </div>
+        </div>
+        `;
     })();
 
     // ── News section ─────────────────────────────────────────────────────────

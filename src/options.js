@@ -10,8 +10,7 @@ const exclusionInput = document.getElementById("exclusionInput");
 const addExclusionBtn = document.getElementById("addExclusion");
 const exclusionList = document.getElementById("exclusionList");
 const exclusionEmpty = document.getElementById("exclusionEmpty");
-const saveBtn = document.getElementById("saveBtn");
-const saveMsg = document.getElementById("saveMsg");
+const savedIndicator = document.getElementById("savedIndicator");
 const baseCountrySelect = document.getElementById("baseCountrySelect");
 const detectCountryBtn = document.getElementById("detectCountryBtn");
 
@@ -99,6 +98,7 @@ if (detectCountryBtn) {
       if (response?.iso2) {
         populateCountrySelect(response.iso2);
         baseCountrySelect.value = response.iso2;
+        saveSettings();
       }
     });
   });
@@ -124,6 +124,7 @@ function renderExclusionList() {
     tag.querySelector(".exclusion-remove").addEventListener("click", (e) => {
       excludedCountries = excludedCountries.filter((c) => c !== e.currentTarget.dataset.country);
       renderExclusionList();
+      saveSettings();
     });
     exclusionList.appendChild(tag);
   });
@@ -136,6 +137,7 @@ function addExclusion() {
   if (!excludedCountries.includes(formatted)) {
     excludedCountries.push(formatted);
     renderExclusionList();
+    saveSettings();
   }
   exclusionInput.value = "";
   exclusionInput.focus();
@@ -144,8 +146,12 @@ function addExclusion() {
 addExclusionBtn.addEventListener("click", addExclusion);
 exclusionInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addExclusion(); });
 
-// ── Save ──────────────────────────────────────────────────────────────────────
-saveBtn.addEventListener("click", () => {
+
+// ── Auto-save ─────────────────────────────────────────────────────────────────
+// Called after every change — no save button needed
+let saveTimer = null;
+
+function saveSettings() {
   const selectedISO2 = baseCountrySelect?.value || null;
   const selectedName = selectedISO2
     ? (COUNTRY_LIST.find(([iso2]) => iso2 === selectedISO2)?.[1] || null)
@@ -163,13 +169,21 @@ saveBtn.addEventListener("click", () => {
   };
 
   chrome.storage.sync.set(settings, () => {
-    // Notify all tabs to refresh highlights + settings
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach((tab) => {
         chrome.tabs.sendMessage(tab.id, { action: "updateSettings", settings }).catch(() => { });
       });
     });
-    saveMsg.classList.add("show");
-    setTimeout(() => saveMsg.classList.remove("show"), 2000);
+    if (savedIndicator) {
+      savedIndicator.classList.add("show");
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => savedIndicator.classList.remove("show"), 1500);
+    }
   });
-});
+}
+
+// Wire auto-save to all toggle inputs and the country select
+[showCovidToggle, showWHOToggle, showVisaToggle, showNewsToggle, highlightLinksToggle].forEach(
+  (el) => el?.addEventListener("change", saveSettings)
+);
+baseCountrySelect?.addEventListener("change", saveSettings);
