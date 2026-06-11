@@ -1,6 +1,6 @@
-# 🌍 GeoVitals — Country Stats on Hover
+# 🌍 GeoVitals — Country Insights on Hover
 
-> Hover over any country name on any webpage to instantly see Demographics information, COVID-19 statistics and WHO disease outbreak alerts.
+> Hover over any country name on any webpage to instantly see demographics, visa requirements, live currency rates, COVID-19 statistics, WHO disease outbreak alerts, and latest news.
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/igkoiddcpkagiijomnmcadchopdnmlje?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=00e5a0)](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
 
@@ -21,11 +21,14 @@
 ## ✨ Features
 
 - **Automatic country detection** — scans every webpage and highlights country names with a subtle green underline
-- **Instant tooltip on hover** — population, density, area, capital city, COVID-19 stats and WHO alerts
+- **Instant tooltip on hover** — population, density, area, capital city, visa requirement, live currency rate, COVID-19 stats, WHO alerts, and latest news
+- **Visa checker** — shows visa requirement for your passport country on every hover; auto-detected from browser locale with option to change
+- **Live currency rate** — shows 1 base → destination rate inline in the visa block, powered by daily exchange rate snapshots
+- **News context mode** — 5 recent headlines per country via Google News RSS, localized to your passport country
 - **Hyperlink support** — works on country names inside anchor tags too
 - **Toggle on/off** — enable or disable from the popup or press `Alt+G`
 - **Last hovered country** — popup shows your last viewed country with a direct link to full analytics
-- **Options page** — show/hide COVID data, WHO alerts, configure country exclusion list
+- **Options page** — auto-saves all settings instantly; show/hide visa, news, COVID data, WHO alerts; configure passport country and exclusion list
 - **Session timer** — tracks how long the extension has been active
 - **30-minute cache** — fast repeated lookups without redundant API calls
 - **Works on any website** — news articles, Wikipedia, research papers, anything
@@ -71,11 +74,14 @@ To customise: `chrome://extensions/shortcuts`
 
 ## ⚙️ Options Page
 
-Access via the **⚙ Options** link in the popup.
+Access via the **⚙ Options** link in the popup. All settings save automatically on change.
 
 | Setting | Default | Description |
 |---|---|---|
-| Show COVID-19 data | ✅ On | Show cases, deaths, active in tooltip |
+| Passport country | Auto-detected | Your passport country used for visa checks and news locale |
+| Show Visa Requirements | ✅ On | Show visa status for your passport in tooltip |
+| Show News Context | ✅ On | Show 5 recent headlines per country |
+| Show COVID-19 data | ✅ On | Show total cases and deaths in tooltip |
 | Show WHO outbreak alerts | ✅ On | Show WHO disease news in tooltip |
 | Highlight hyperlinks | ✅ On | Detect country names inside anchor tags |
 | Country exclusion list | Empty | Countries you never want highlighted |
@@ -88,8 +94,11 @@ All APIs are **free** and require **no API key**.
 
 | API | Data |
 |---|---|
-| [REST Countries v4](https://restcountries.com) | Population, density, area, capital city, flag, ISO alpha3 code (cca3) |
-| [disease.sh](https://disease.sh) | COVID-19 cases, deaths, active, critical |
+| [REST Countries v4](https://restcountries.com) | Population, density, area, capital city, flag, ISO codes |
+| [Passport Index](https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json) | Visa requirements by passport + destination country |
+| [fawazahmed0 Currency API](https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/) | Daily exchange rates for 150+ currencies, via jsdelivr CDN |
+| [Google News RSS](https://news.google.com) | Recent headlines, localized to passport country |
+| [disease.sh](https://disease.sh) | COVID-19 total cases and deaths |
 | [WHO Outbreak News](https://www.who.int) | Disease outbreak alerts |
 
 ---
@@ -99,13 +108,13 @@ All APIs are **free** and require **no API key**.
 ```
 chrome-extension-geovitals/
 ├── src/
-│   ├── popup.js            # React popup entry
+│   ├── popup.js            # Vanilla JS popup
 │   ├── popup.html          # Popup HTML template
-│   ├── options.js          # React options page
+│   ├── options.js          # Vanilla JS options page
 │   ├── options.html        # Options HTML template
 │   ├── background.js       # Service worker — API fetching & caching
 │   ├── content.js          # Content script — highlights & tooltip
-│   ├── manifest.json       # Chrome extension manifest
+│   ├── manifest.json       # Chrome extension manifest v3
 │   ├── 16.png              # Extension icons
 │   ├── 32.png
 │   ├── 48.png
@@ -128,14 +137,18 @@ User hovers highlighted country
   → Message sent to background service worker
 
 Background worker
-  → Fetches REST Countries + disease.sh + WHO in parallel
-  → Flag image served directly from REST Countries API
-  → Results cached for 30 minutes
-  → Returns { demographics, covid, outbreaks }
+  → Fetches REST Countries + disease.sh + WHO + Passport Index + Currency API + Google News in parallel
+  → Passport index + currency rates fetched once (30 min cache) from jsdelivr CDN
+  → Google News RSS locale set from user's passport country (e.g. IN → hl=en-IN)
+  → All results cached (30 min general, 5 min news)
+  → Returns { demographics, visa, currency, news, covid, outbreaks }
 
 Tooltip renders
   → Population, density, area, capital city
-  → COVID-19 breakdown
+  → Visa requirement for your passport (Visa Free / On Arrival / eVisa / Required)
+  → Live currency rate (1 base currency = X destination currency)
+  → 5 recent news headlines
+  → COVID-19 total cases and deaths
   → WHO outbreak alerts
   → Link to GeoQuery Dashboard for full analytics
 ```
@@ -147,9 +160,9 @@ Tooltip renders
 | Permission | Reason |
 |---|---|
 | `storage` | Save toggle state, settings and last viewed country |
-| `tabs` | Show current tab hostname in popup |
+| `tabs` | Show current tab hostname in popup; notify tabs on settings change |
 | `activeTab` | Send messages to the active page |
-| `host_permissions` | Fetch data from REST Countries, disease.sh, WHO |
+| `host_permissions` | Fetch data from REST Countries, disease.sh, WHO, jsdelivr CDN, Google News |
 
 ---
 
@@ -157,15 +170,25 @@ Tooltip renders
 
 | Technology | Usage |
 |---|---|
-| React 18 | Popup and options page UI |
-| Vanilla JS | Content script and background service worker |
+| Vanilla JS | Popup, options page, content script, background service worker |
 | Webpack 5 | Bundler — keeps background/content scripts separate |
-| Babel | JSX and modern JS transpilation |
+| Babel | Modern JS transpilation |
 | Chrome Manifest V3 | Extension platform |
 
 ---
 
 ## 📦 Changelog
+
+### v1.1.1
+- ✅ Added **Visa Checker** — shows visa requirement (Visa Free / On Arrival / eVisa / Required) for your passport on every hover
+- ✅ Added **News Context Mode** — 5 recent Google News headlines per country, locale-aware based on your passport country
+- ✅ Passport country **auto-detected** from browser locale via `chrome.i18n.getAcceptLanguages()`
+- ✅ Options page now **auto-saves** all settings instantly — no save button
+- ✅ Added passport country selector + auto-detect button to options page
+- ✅ Visa block redesigned as consistent grid matching the demographics layout
+- ✅ COVID tooltip trimmed to total cases and deaths only (removed active/critical/emojis)
+- ✅ Added **Currency Converter** — live 1 base → destination rate shown in visa block; same-currency detection; powered by fawazahmed0 API via jsdelivr CDN
+- ✅ Google News RSS locale (`hl`, `gl`, `ceid`) dynamically set from passport country
 
 ### v1.1.0
 - ✅ Fixed hover detection on country names inside hyperlinks
@@ -204,8 +227,11 @@ Tooltip renders
 ## 🙏 Acknowledgements
 
 - [REST Countries](https://restcountries.com) for country data
+- [Passport Index](https://github.com/imorte/passport-index-data) for visa requirement data
 - [disease.sh](https://disease.sh) for COVID-19 statistics
 - [World Health Organization](https://www.who.int) for outbreak news
+- [fawazahmed0 Currency API](https://github.com/fawazahmed0/exchange-api) for daily exchange rates
+- [Google News](https://news.google.com) for country news headlines
 
 ---
 

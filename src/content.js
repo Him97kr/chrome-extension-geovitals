@@ -1,6 +1,7 @@
 // ─── content.js ───────────────────────────────────────────────────────────────
 // Scans webpage text for country names, highlights them, and shows a rich
-// tooltip with population stats and disease outbreak data on hover.
+// tooltip with population stats, disease outbreak data, visa requirements,
+// and latest news on hover.
 // ─────────────────────────────────────────────────────────────────────────────
 
 (() => {
@@ -39,20 +40,31 @@
   const settings = {
     showCovid: true,
     showWHO: true,
+    showVisa: true,
+    showNews: true,
     highlightLinks: true,
     excludedCountries: [],
+    baseCountry: null, // ISO2 code
+    baseCountryName: null,
   };
 
   // ─── Check extension state + settings on load ───────────────────────────────
   chrome.storage.sync.get(
-    ["extensionEnabled", "showCovid", "showWHO", "highlightLinks", "excludedCountries"],
+    [
+      "extensionEnabled", "showCovid", "showWHO", "showVisa", "showNews",
+      "highlightLinks", "excludedCountries", "baseCountry", "baseCountryName",
+    ],
     (result) => {
       if (result.extensionEnabled === false) return;
       isEnabled = true;
       settings.showCovid = result.showCovid !== false;
       settings.showWHO = result.showWHO !== false;
+      settings.showVisa = result.showVisa !== false;
+      settings.showNews = result.showNews !== false;
       settings.highlightLinks = result.highlightLinks !== false;
       settings.excludedCountries = result.excludedCountries || [];
+      settings.baseCountry = result.baseCountry || null;
+      settings.baseCountryName = result.baseCountryName || null;
       injectStyles();
       scanAndHighlight();
     }
@@ -62,21 +74,19 @@
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "toggleExtension") {
       isEnabled = message.enabled;
-      if (!isEnabled) {
-        removeAllHighlights();
-        hideTooltip();
-      } else {
-        injectStyles();
-        scanAndHighlight();
-      }
+      if (!isEnabled) { removeAllHighlights(); hideTooltip(); }
+      else { injectStyles(); scanAndHighlight(); }
     }
     if (message.action === "updateSettings") {
       const s = message.settings;
       settings.showCovid = s.showCovid !== false;
       settings.showWHO = s.showWHO !== false;
+      settings.showVisa = s.showVisa !== false;
+      settings.showNews = s.showNews !== false;
       settings.highlightLinks = s.highlightLinks !== false;
       settings.excludedCountries = s.excludedCountries || [];
-      // Re-scan with new exclusion list
+      settings.baseCountry = s.baseCountry || null;
+      settings.baseCountryName = s.baseCountryName || null;
       removeAllHighlights();
       if (isEnabled) scanAndHighlight();
     }
@@ -106,7 +116,6 @@
       .cei-highlight:hover {
         background: linear-gradient(120deg, rgba(0,229,160,0.32) 0%, rgba(0,229,160,0.15) 100%);
       }
-      /* Ensure highlights inside anchors always receive mouse events */
       a .cei-highlight,
       a:hover .cei-highlight {
         pointer-events: auto !important;
@@ -150,13 +159,13 @@
         color: #fff;
         letter-spacing: 0.02em;
       }
-      .cei-flag {
-        font-size: 22px;
-        font-weight: 600;
-      }
+      .cei-flag { font-size: 22px; font-weight: 600; }
 
-      .cei-body {
-        padding: 14px 16px;
+      .cei-body { 
+        height: 55vh;
+        overflow-y: auto;
+        scrollbar-width: none;
+        padding: 14px 16px; 
       }
 
       .cei-section-title {
@@ -196,7 +205,7 @@
         text-transform: uppercase;
       }
       .cei-stat.negative .cei-stat-value { color: #ff4d6d; }
-      .cei-stat.neutral .cei-stat-value  { color: #f5c842; }
+      .cei-stat.neutral  .cei-stat-value { color: #f5c842; }
 
       .cei-divider {
         height: 1px;
@@ -209,7 +218,6 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
-        margin-bottom: 14px;
       }
       .cei-covid-card {
         background: #13131e;
@@ -218,25 +226,18 @@
         padding: 8px 10px;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
       }
-      .cei-covid-icon {
-        font-size: 16px;
-        flex-shrink: 0;
-      }
-      .cei-covid-info {}
-      .cei-covid-value {
-        font-size: 11px;
-        font-weight: 500;
-        color: #e8e8f0;
-        line-height: 1.2;
-      }
-      .cei-covid-label {
-        font-size: 9px;
-        color: #b4b4f9;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
+      .cei-covid-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 5px;
+      }  
+      .cei-covid-value  { font-size: 11px; font-weight: 600; line-height: 1.2; }
+      .cei-covid-label  { font-size: 9px; color: #b4b4f9; text-transform: uppercase; letter-spacing: 0.06em; }
 
       /* Outbreak alerts */
       .cei-outbreak-list {
@@ -245,6 +246,7 @@
         gap: 6px;
         max-height: 120px;
         overflow-y: auto;
+        margin-bottom: 14px;
       }
       .cei-outbreak-list::-webkit-scrollbar { width: 3px; }
       .cei-outbreak-list::-webkit-scrollbar-track { background: transparent; }
@@ -262,16 +264,8 @@
         transition: border-color 0.2s;
       }
       .cei-outbreak-item:hover { border-left-color: #ff7a8a; }
-      .cei-outbreak-title {
-        font-size: 11px;
-        color: #e8e8f0;
-        line-height: 1.4;
-        margin-bottom: 2px;
-      }
-      .cei-outbreak-date {
-        font-size: 9px;
-        color: #b4b4f9;
-      }
+      .cei-outbreak-title { font-size: 11px; color: #e8e8f0; line-height: 1.4; margin-bottom: 2px; }
+      .cei-outbreak-date  { font-size: 9px; color: #b4b4f9; }
 
       .cei-no-outbreaks {
         font-size: 10px;
@@ -280,6 +274,72 @@
         padding: 8px 0;
       }
 
+      /* ── Visa grid ──────────────────────────────────────── */
+      .cei-visa-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .cei-visa-card {
+        background: #13131e;
+        border: 1px solid #1a1a2e;
+        border-radius: 8px;
+        padding: 10px 8px;
+        text-align: center;
+      }
+      .cei-visa-card.full {
+        grid-column: 1 / -1;
+      }
+      .cei-visa-status {
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.2;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+      }
+      .cei-visa-status.free     { color: #00e5a0; }
+      .cei-visa-status.arrival  { color: #f5c842; }
+      .cei-visa-status.evisa    { color: #6ab0ff; }
+      .cei-visa-status.required { color: #fe6c6c; }
+      .cei-visa-status.home     { color: #ffffff; }
+      .cei-visa-status.unknown  { color: #ffffff; }
+      .cei-visa-card-label {
+        font-size: 9px;
+        color: #b4b4f9;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* ── News items ─────────────────────────────────────── */
+      .cei-news-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 150px;
+        overflow-y: auto;
+        margin-bottom: 14px;
+      }
+      .cei-news-list::-webkit-scrollbar { width: 3px; }
+      .cei-news-list::-webkit-scrollbar-track { background: transparent; }
+      .cei-news-list::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 2px; }
+
+      .cei-news-item {
+        background: #13131e;
+        border: 1px solid #1a1a2e;
+        border-left: 3px solid #78b4ff;
+        border-radius: 0 6px 6px 0;
+        padding: 7px 10px;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        transition: border-color 0.2s;
+      }
+      .cei-news-item:hover { border-left-color: #aad4ff; }
+      .cei-news-title  { font-size: 11px; color: #e8e8f0; line-height: 1.4; margin-bottom: 2px; }
+      .cei-news-meta   { font-size: 9px; color: #b4b4f9; display: flex; justify-content: space-between; }
+      .cei-no-news     { font-size: 10px; color: #b4b4f9; text-align: center; padding: 8px 0; }
+
+      /* Loading */
       .cei-loading {
         display: flex;
         align-items: center;
@@ -290,16 +350,13 @@
         color: #b4b4f9;
       }
       .cei-spinner {
-        width: 14px;
-        height: 14px;
+        width: 14px; height: 14px;
         border: 2px solid #1a1a2e;
         border-top-color: #00e5a0;
         border-radius: 50%;
         animation: cei-spin 0.7s linear infinite;
       }
-      @keyframes cei-spin {
-        to { transform: rotate(360deg); }
-      }
+      @keyframes cei-spin { to { transform: rotate(360deg); } }
 
       .cei-footer {
         padding: 8px 16px 10px;
@@ -309,7 +366,6 @@
         text-align: right;
         letter-spacing: 0.06em;
       }
-
       .cei-error {
         font-size: 10px;
         color: #ff4d6d;
@@ -322,7 +378,6 @@
 
   // ─── Scan DOM and wrap country names ────────────────────────────────────────
   function scanAndHighlight() {
-    // Filter out excluded countries from pattern
     const activeCountries = COUNTRIES.filter(
       (c) => !settings.excludedCountries
         .map((e) => e.toLowerCase())
@@ -336,23 +391,15 @@
         acceptNode(node) {
           const parent = node.parentElement;
           if (!parent) return NodeFilter.FILTER_REJECT;
-
           const tag = parent.tagName?.toUpperCase();
-          // Skip script, style, inputs, already-highlighted
-          if (["SCRIPT", "STYLE", "TEXTAREA", "INPUT", "NOSCRIPT"].includes(tag)) {
+          if (["SCRIPT", "STYLE", "TEXTAREA", "INPUT", "NOSCRIPT"].includes(tag))
             return NodeFilter.FILTER_REJECT;
-          }
-          if (parent.classList?.contains("cei-highlight")) {
+          if (parent.classList?.contains("cei-highlight"))
             return NodeFilter.FILTER_REJECT;
-          }
-          // Skip anchor tags if highlightLinks is disabled
-          if (tag === "A" && !settings.highlightLinks) {
+          if (tag === "A" && !settings.highlightLinks)
             return NodeFilter.FILTER_REJECT;
-          }
-          // Skip empty anchor text
-          if (tag === "A" && (!node.textContent || node.textContent.trim().length < 2)) {
+          if (tag === "A" && (!node.textContent || node.textContent.trim().length < 2))
             return NodeFilter.FILTER_REJECT;
-          }
           return NodeFilter.FILTER_ACCEPT;
         },
       }
@@ -362,7 +409,6 @@
     let node;
     while ((node = walker.nextNode())) textNodes.push(node);
 
-    // Build a regex from active countries — longest first to avoid partial matches
     const sorted = [...activeCountries].sort((a, b) => b.length - a.length);
     const pattern = new RegExp(`\\b(${sorted.map(escapeRegex).join("|")})\\b`, "g");
 
@@ -376,33 +422,26 @@
       let match;
 
       while ((match = pattern.exec(text)) !== null) {
-        // Text before match
         if (match.index > lastIndex) {
           fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
         }
-        // Highlighted span
         const span = document.createElement("span");
         span.className = "cei-highlight";
         span.dataset.country = match[1];
         span.textContent = match[1];
-        span.addEventListener("mouseenter", onHighlightEnter);
-        span.addEventListener("mouseleave", onHighlightLeave);
-        // If inside a hyperlink — prevent tooltip click from navigating
-        // but still allow the link itself to work normally
-        span.addEventListener("click", (e) => e.stopPropagation());
-        // Ensure pointer events work even if parent anchor disables them
         span.style.pointerEvents = "auto";
         span.style.position = "relative";
         span.style.zIndex = "1";
+        span.addEventListener("mouseenter", onHighlightEnter);
+        span.addEventListener("mouseleave", onHighlightLeave);
+        span.addEventListener("click", (e) => e.stopPropagation());
         fragment.appendChild(span);
         lastIndex = match.index + match[1].length;
       }
 
-      // Remaining text
       if (lastIndex < text.length) {
         fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
       }
-
       textNode.parentNode.replaceChild(fragment, textNode);
     });
   }
@@ -414,17 +453,14 @@
   // ─── Hover handlers ──────────────────────────────────────────────────────────
   function onHighlightEnter(e) {
     clearTimeout(hideTimer);
-    const countryName = e.currentTarget.dataset.country;
     currentHighlight = e.currentTarget;
-    showTooltip(e.currentTarget, countryName);
+    showTooltip(e.currentTarget, e.currentTarget.dataset.country);
   }
-
   function onHighlightLeave() {
     hideTimer = setTimeout(() => {
       if (!isTooltipHovered()) hideTooltip();
     }, 300);
   }
-
   function isTooltipHovered() {
     return tooltip?.matches(":hover");
   }
@@ -433,7 +469,6 @@
   function showTooltip(anchor, countryName) {
     if (!tooltip) createTooltip();
 
-    // Show loading state
     tooltip.innerHTML = `
       <div class="cei-header">
         <span class="cei-country-name">${countryName}</span>
@@ -447,17 +482,13 @@
     positionTooltip(anchor);
     tooltip.classList.add("visible");
 
-    // Fetch data from background
     chrome.runtime.sendMessage(
-      { action: "getCountryData", countryName },
+      { action: "getCountryData", countryName, baseCountry: settings.baseCountry },
       (response) => {
         if (!tooltip?.classList.contains("visible")) return;
-        if (!response?.success || !response.data) {
-          renderError(countryName);
-          return;
-        }
+        if (!response?.success || !response.data) { renderError(countryName); return; }
         renderTooltip(response.data);
-        positionTooltip(anchor); // re-position after content change
+        positionTooltip(anchor);
       }
     );
   }
@@ -482,40 +513,153 @@
     const rect = anchor.getBoundingClientRect();
     const tw = 320;
     const margin = 10;
-
     let left = rect.left;
     let top = rect.bottom + 8;
 
-    // Prevent overflow right
-    if (left + tw + margin > window.innerWidth) {
+    if (left + tw + margin > window.innerWidth)
       left = window.innerWidth - tw - margin;
-    }
-    // Prevent overflow bottom — flip above
-    if (top + 300 > window.innerHeight) {
-      top = rect.top - 8 - Math.min(tooltip.offsetHeight || 300, 400);
-    }
+    if (top + 300 > window.innerHeight)
+      top = rect.top - 8 - Math.min(tooltip.offsetHeight || 300, 500);
 
     tooltip.style.left = `${Math.max(margin, left)}px`;
     tooltip.style.top = `${Math.max(margin, top)}px`;
   }
 
   // ─── Render tooltip content ──────────────────────────────────────────────────
-  function renderTooltip({ countryName, demographics, covid, outbreaks }) {
+  function renderTooltip({ countryName, demographics, covid, outbreaks, visa, news, currency }) {
     if (!tooltip) return;
 
     const demo = demographics;
     const flag = demographics?.flag;
-
-    // Format helpers
     const fmt = (n) => n != null ? Number(n).toLocaleString() : "N/A";
-    // const fmtM = (n) => n != null ? `${(n / 1e6).toFixed(1)}M` : "N/A";
 
-    // Outbreaks HTML
-    const whoOutbreaksUrl = 'https://www.who.int/emergencies/disease-outbreak-news/item/'
+    // ── Visa section ────────────────────────────────────────────────────────
+    const visaHTML = (() => {
+      if (!settings.showVisa) return "";
+
+      const baseLabel = settings.baseCountryName || settings.baseCountry || "your passport";
+
+      if (!visa) {
+        const curLabel = currency?.same ? 'Same currency'
+          : currency?.rate != null ? `1 ${currency.baseCur.toUpperCase()} = ${currency.rate.toFixed(3)} ${currency.destCur.toUpperCase()}`
+            : 'N/A';
+        return `
+          <div class="cei-divider"></div>
+          <div class="cei-section-title">Visa Requirement</div>
+          <div class="cei-visa-grid" style="margin-bottom: 14px;">
+            <div class="cei-visa-card">
+              <div class="cei-visa-status unknown">⚠ Data unavailable</div>
+              <div class="cei-visa-card-label">Entry Status</div>
+            </div>
+            <div class="cei-visa-card">
+              <div class="cei-visa-status unknown">${baseLabel}</div>
+              <div class="cei-visa-card-label">Passport</div>
+            </div>
+            <div class="cei-visa-card">
+              <div class="cei-visa-status unknown">${curLabel}</div>
+              <div class="cei-visa-card-label">Currency Rate</div>
+            </div>
+            <div class="cei-visa-card" data-action="change-passport" style="cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <div class="cei-visa-card-label">⚙ Change Country</div>
+            </div>
+          </div>
+          `;
+      }
+
+      if (visa.access === "home") {
+        return `
+          <div class="cei-divider"></div>
+          <div class="cei-section-title">Visa Requirement</div>
+          <div class="cei-visa-grid" style="margin-bottom: 14px;">
+            <div class="cei-visa-card">
+              <div class="cei-visa-status home">🏠 Home Country</div>
+              <div class="cei-visa-card-label">No visa needed</div>
+            </div>
+            <div class="cei-visa-card">
+              <div class="cei-visa-status home">${baseLabel}</div>
+              <div class="cei-visa-card-label">Passport</div>
+            </div>
+            <div class="cei-visa-card">
+              <div class="cei-visa-status home">Same currency</div>
+              <div class="cei-visa-card-label">Currency Rate</div>
+            </div>
+            <div class="cei-visa-card" data-action="change-passport" style="cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <div class="cei-visa-card-label">⚙ Change Country</div>
+            </div>
+          </div>
+          `;
+      }
+
+      const accessNorm = (visa.access || "").toLowerCase().trim();
+      let statusClass = "unknown";
+      let icon = "❓";
+      let label = visa.access || "Unknown";
+      let durLabel = "";
+
+      if (accessNorm.includes("visa free")) {
+        statusClass = "free"; icon = "✅"; label = "Visa Free";
+        durLabel = (visa.dur && visa.dur !== "-1") ? `${visa.dur} days` : "No limit";
+      } else if (accessNorm.includes("on arrival")) {
+        statusClass = "arrival"; icon = "🛬"; label = "Visa on Arrival";
+        durLabel = "At border";
+      } else if (accessNorm.includes("e-visa") || accessNorm.includes("evisa") || accessNorm.includes("eta")) {
+        statusClass = "evisa"; icon = "💻"; label = "eVisa / ETA";
+        durLabel = "Apply online";
+      } else if (accessNorm.includes("required")) {
+        statusClass = "required"; icon = "🚫"; label = "Visa Required";
+        durLabel = "Embassy required";
+      }
+
+      return `
+        <div class="cei-divider"></div>
+        <div class="cei-section-title">Visa Requirement</div>
+        <div class="cei-visa-grid" style="margin-bottom: 14px;">
+          <div class="cei-visa-card">
+            <div class="cei-visa-status ${statusClass}">${icon} ${label}</div>
+            <div class="cei-visa-card-label">${durLabel}</div>
+          </div>
+          <div class="cei-visa-card">
+            <div class="cei-visa-status ${statusClass}">${baseLabel}</div>
+            <div class="cei-visa-card-label">Passport</div>
+          </div>
+          <div class="cei-visa-card">
+            <div class="cei-visa-status ${statusClass}">${currency?.same ? 'Same currency' : currency?.rate != null ? `1 ${currency.baseCur.toUpperCase()} = ${currency.rate.toFixed(3)} ${currency.destCur.toUpperCase()}` : 'N/A'}</div>
+            <div class="cei-visa-card-label">Currency Rate</div>
+          </div>
+          <div class="cei-visa-card" data-action="change-passport" style="cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <div class="cei-visa-card-label">⚙ Change Country</div>
+          </div>
+        </div>
+        `;
+    })();
+
+    // ── News section ─────────────────────────────────────────────────────────
+    const newsHTML = (() => {
+      if (!settings.showNews) return "";
+
+      const newsItems = news?.length
+        ? news.map((n) => `
+            <a class="cei-news-item" href="${n.link || '#'}" target="_blank" rel="noopener">
+              <div class="cei-news-title">${sanitize(n.title)}</div>
+              <div class="cei-news-meta">
+                <span>${sanitize(n.source)}</span>
+                <span>${formatDate(n.pubDate)}</span>
+              </div>
+            </a>`).join("")
+        : `<div class="cei-no-news">No recent news found</div>`;
+
+      return `
+        <div class="cei-divider"></div>
+        <div class="cei-section-title">📰 News Context</div>
+        <div class="cei-news-list">${newsItems}</div>`;
+    })();
+
+    // ── Outbreaks ────────────────────────────────────────────────────────────
+    const whoOutbreaksUrl = "https://www.who.int/emergencies/disease-outbreak-news/item/";
     const outbreakHTML = outbreaks?.length
       ? outbreaks.map((o) => `
-          <a class="cei-outbreak-item" href="${whoOutbreaksUrl + o.url || "#"}" target="_blank" rel="noopener">
-            <div class="cei-outbreak-title">${o.title}</div>
+          <a class="cei-outbreak-item" href="${whoOutbreaksUrl + (o.url || "#")}" target="_blank" rel="noopener">
+            <div class="cei-outbreak-title">${sanitize(o.title)}</div>
             <div class="cei-outbreak-date">${formatDate(o.date)}</div>
           </a>`).join("")
       : `<div class="cei-no-outbreaks">✓ No active WHO outbreak alerts</div>`;
@@ -529,14 +673,14 @@
       <div class="cei-body">
 
         <!-- Demographics -->
-        <div class="cei-section-title">Demographics · REST Countries</div>
+        <div class="cei-section-title">Demographics</div>
         <div class="cei-stats-grid">
-           <div class="cei-stat">
+          <div class="cei-stat">
             <div class="cei-stat-value">${demo ? fmt(demo.population) : "N/A"}</div>
             <div class="cei-stat-label">Population</div>
           </div>
-           <div class="cei-stat">
-            <div class="cei-stat-value">${demo ? fmt(demo?.area) : "N/A"}</div>
+          <div class="cei-stat">
+            <div class="cei-stat-value">${demo ? fmt(demo.area) : "N/A"}</div>
             <div class="cei-stat-label">Area (km²)</div>
           </div>
           <div class="cei-stat">
@@ -544,51 +688,41 @@
             <div class="cei-stat-label">Density (per km²)</div>
           </div>
           <div class="cei-stat">
-            <div class="cei-stat-value">${demo ? demo?.capital : "N/A"}</div>
+            <div class="cei-stat-value">${demo ? demo.capital : "N/A"}</div>
             <div class="cei-stat-label">Capital</div>
           </div>
         </div>
 
-        <!-- COVID-19 -->
-        ${covid && settings.showCovid ? `
-        <div class="cei-divider"></div>
-        <div class="cei-section-title">COVID-19 · disease.sh</div>
-        <div class="cei-covid-grid">
-          <div class="cei-covid-card">
-            <span class="cei-covid-icon">🦠</span>
-            <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.cases)}</div>
-              <div class="cei-covid-label">Total Cases</div>
-            </div>
-          </div>
-          <div class="cei-covid-card">
-            <span class="cei-covid-icon">💀</span>
-            <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.deaths)}</div>
-              <div class="cei-covid-label">Deaths</div>
-            </div>
-          </div>
-          <div class="cei-covid-card">
-            <span class="cei-covid-icon">⚡</span>
-            <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.active)}</div>
-              <div class="cei-covid-label">Active</div>
-            </div>
-          </div>
-          <div class="cei-covid-card">
-            <span class="cei-covid-icon">🏥</span>
-            <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.critical)}</div>
-              <div class="cei-covid-label">Critical</div>
-            </div>
-          </div>
-        </div>` : ""}
+        <!-- Visa -->
+        ${visaHTML}
+
+        <!-- News -->
+        ${newsHTML}
 
         <!-- WHO Outbreaks -->
         ${outbreaks && settings.showWHO ? `
         <div class="cei-divider"></div>
         <div class="cei-section-title">WHO Outbreak Alerts</div>
         <div class="cei-outbreak-list">${outbreakHTML}</div>` : ""}
+
+        <!-- COVID-19 -->
+        ${settings.showCovid ? `
+        <div class="cei-divider"></div>
+        <div class="cei-section-title">COVID-19 Statistics</div>
+        <div class="cei-covid-grid">
+          <div class="cei-covid-card">
+            <div class="cei-covid-info">
+              <div class="cei-covid-value">${fmt(covid?.cases)}</div>
+              <div class="cei-covid-label">Total Cases</div>
+            </div>
+          </div>
+          <div class="cei-covid-card">
+            <div class="cei-covid-info">
+              <div class="cei-covid-value">${fmt(covid?.deaths)}</div>
+              <div class="cei-covid-label">Deaths</div>
+            </div>
+          </div>
+        </div>` : ""}
 
       </div>
 
@@ -599,13 +733,20 @@
            onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
           🌍 Full Analytics →
         </a>
-        <a href="https://github.com/Him97kr" target="_blank" 
+        <a href="https://github.com/Him97kr" target="_blank"
           style="color:#b4b4f9;text-decoration:none;font-size:9px;opacity:0.8;"
           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
           by Himanshu
         </a>
       </div>
     `;
+
+    // Wire up "Change passport" link inside tooltip
+    tooltip.querySelector("[data-action='change-passport']")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ action: "openOptionsPage" });
+    });
   }
 
   function renderError(countryName) {
@@ -618,7 +759,7 @@
     `;
   }
 
-  // ─── Remove all highlights ───────────────────────────────────────────────────
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
   function removeAllHighlights() {
     document.querySelectorAll(".cei-highlight").forEach((el) => {
       el.replaceWith(document.createTextNode(el.textContent));
@@ -631,8 +772,15 @@
       return new Date(dateStr).toLocaleDateString("en-US", {
         year: "numeric", month: "short", day: "numeric",
       });
-    } catch {
-      return dateStr;
-    }
+    } catch { return dateStr; }
+  }
+
+  function sanitize(str) {
+    if (!str) return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 })();

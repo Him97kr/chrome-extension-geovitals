@@ -1,7 +1,7 @@
 {
-  "name": "GeoVitals - Country Stats on Hover",
-  "version": "1.1.0",
-  "description": "Hover over any country name to instantly see Demographics information, COVID-19 stats and WHO disease outbreak alerts.",
+  "name": "GeoVitals - Country Insights on Hover",
+  "version": "1.1.1",
+  "description": "Hover over any country name to instantly see demographics, visa requirements, live currency rates, COVID-19 stats, WHO alerts, and latest news.",
   "main": "index.js",
   "scripts": {
     "webpack-local": "webpack-dev-server",
