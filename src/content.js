@@ -162,7 +162,7 @@
       .cei-flag { font-size: 22px; font-weight: 600; }
 
       .cei-body { 
-        height: 60vh;
+        height: 55vh;
         overflow-y: auto;
         scrollbar-width: none;
         padding: 14px 16px; 
