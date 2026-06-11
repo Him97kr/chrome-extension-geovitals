@@ -246,6 +246,7 @@
         gap: 6px;
         max-height: 120px;
         overflow-y: auto;
+        margin-bottom: 14px;
       }
       .cei-outbreak-list::-webkit-scrollbar { width: 3px; }
       .cei-outbreak-list::-webkit-scrollbar-track { background: transparent; }
@@ -705,19 +706,19 @@
         <div class="cei-outbreak-list">${outbreakHTML}</div>` : ""}
 
         <!-- COVID-19 -->
-        ${covid && settings.showCovid ? `
+        ${settings.showCovid ? `
         <div class="cei-divider"></div>
         <div class="cei-section-title">COVID-19 Statistics</div>
         <div class="cei-covid-grid">
           <div class="cei-covid-card">
             <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.cases)}</div>
+              <div class="cei-covid-value">${fmt(covid?.cases)}</div>
               <div class="cei-covid-label">Total Cases</div>
             </div>
           </div>
           <div class="cei-covid-card">
             <div class="cei-covid-info">
-              <div class="cei-covid-value">${fmt(covid.deaths)}</div>
+              <div class="cei-covid-value">${fmt(covid?.deaths)}</div>
               <div class="cei-covid-label">Deaths</div>
             </div>
           </div>
