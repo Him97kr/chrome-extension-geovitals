@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "GeoVitals - Country Stats on Hover",
+    "name": "GeoVitals - Country Insights on Hover",
     "version": "1.1.1",
-    "description": "Hover over any country name to instantly see demographics, visa requirements, COVID-19 stats, WHO alerts, and latest news.",
+    "description": "Hover over any country name to instantly see demographics, visa requirements, live currency rates, COVID-19 stats, WHO alerts, and latest news.",
     "icons": {
         "16": "16.png",
         "32": "32.png",

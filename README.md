@@ -1,6 +1,6 @@
-# 🌍 GeoVitals — Country Stats on Hover
+# 🌍 GeoVitals — Country Insights on Hover
 
-> Hover over any country name on any webpage to instantly see demographics, visa requirements, COVID-19 statistics, WHO disease outbreak alerts, and latest news.
+> Hover over any country name on any webpage to instantly see demographics, visa requirements, live currency rates, COVID-19 statistics, WHO disease outbreak alerts, and latest news.
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/igkoiddcpkagiijomnmcadchopdnmlje?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=00e5a0)](https://chromewebstore.google.com/detail/igkoiddcpkagiijomnmcadchopdnmlje)
 
@@ -21,8 +21,9 @@
 ## ✨ Features
 
 - **Automatic country detection** — scans every webpage and highlights country names with a subtle green underline
-- **Instant tooltip on hover** — population, density, area, capital city, visa requirement, COVID-19 stats, WHO alerts, and latest news
+- **Instant tooltip on hover** — population, density, area, capital city, visa requirement, live currency rate, COVID-19 stats, WHO alerts, and latest news
 - **Visa checker** — shows visa requirement for your passport country on every hover; auto-detected from browser locale with option to change
+- **Live currency rate** — shows 1 base → destination rate inline in the visa block, powered by daily exchange rate snapshots
 - **News context mode** — 5 recent headlines per country via Google News RSS, localized to your passport country
 - **Hyperlink support** — works on country names inside anchor tags too
 - **Toggle on/off** — enable or disable from the popup or press `Alt+G`
@@ -95,6 +96,7 @@ All APIs are **free** and require **no API key**.
 |---|---|
 | [REST Countries v4](https://restcountries.com) | Population, density, area, capital city, flag, ISO codes |
 | [Passport Index](https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json) | Visa requirements by passport + destination country |
+| [fawazahmed0 Currency API](https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/) | Daily exchange rates for 150+ currencies, via jsdelivr CDN |
 | [Google News RSS](https://news.google.com) | Recent headlines, localized to passport country |
 | [disease.sh](https://disease.sh) | COVID-19 total cases and deaths |
 | [WHO Outbreak News](https://www.who.int) | Disease outbreak alerts |
@@ -135,15 +137,16 @@ User hovers highlighted country
   → Message sent to background service worker
 
 Background worker
-  → Fetches REST Countries + disease.sh + WHO + Passport Index + Google News in parallel
-  → Passport index JSON fetched once (30 min cache) from jsdelivr CDN
+  → Fetches REST Countries + disease.sh + WHO + Passport Index + Currency API + Google News in parallel
+  → Passport index + currency rates fetched once (30 min cache) from jsdelivr CDN
   → Google News RSS locale set from user's passport country (e.g. IN → hl=en-IN)
   → All results cached (30 min general, 5 min news)
-  → Returns { demographics, visa, news, covid, outbreaks }
+  → Returns { demographics, visa, currency, news, covid, outbreaks }
 
 Tooltip renders
   → Population, density, area, capital city
   → Visa requirement for your passport (Visa Free / On Arrival / eVisa / Required)
+  → Live currency rate (1 base currency = X destination currency)
   → 5 recent news headlines
   → COVID-19 total cases and deaths
   → WHO outbreak alerts
@@ -184,6 +187,7 @@ Tooltip renders
 - ✅ Added passport country selector + auto-detect button to options page
 - ✅ Visa block redesigned as consistent grid matching the demographics layout
 - ✅ COVID tooltip trimmed to total cases and deaths only (removed active/critical/emojis)
+- ✅ Added **Currency Converter** — live 1 base → destination rate shown in visa block; same-currency detection; powered by fawazahmed0 API via jsdelivr CDN
 - ✅ Google News RSS locale (`hl`, `gl`, `ceid`) dynamically set from passport country
 
 ### v1.1.0
@@ -226,6 +230,7 @@ Tooltip renders
 - [Passport Index](https://github.com/imorte/passport-index-data) for visa requirement data
 - [disease.sh](https://disease.sh) for COVID-19 statistics
 - [World Health Organization](https://www.who.int) for outbreak news
+- [fawazahmed0 Currency API](https://github.com/fawazahmed0/exchange-api) for daily exchange rates
 - [Google News](https://news.google.com) for country news headlines
 
 ---
