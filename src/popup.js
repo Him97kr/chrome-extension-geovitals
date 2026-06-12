@@ -1,4 +1,4 @@
-// popup.js — GeoVitals v1.1.1
+// popup.js — GeoVitals v1.1.5
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const toggleBtn = document.getElementById("toggleBtn");

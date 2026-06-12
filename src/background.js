@@ -1,6 +1,5 @@
 // ─── background.js ────────────────────────────────────────────────────────────
 // APIs Used:
-//   - restcountries.com v4 : population, density        (no key, always current)
 //   - disease.sh           : COVID-19 stats by country  (no key)
 //   - WHO API              : disease outbreak news      (no key)
 //   - passport-index CDN   : visa requirements          (no key)
@@ -162,11 +161,9 @@ async function handleCountryDataRequest(countryName, baseCountry) {
       baseCountry ? getCurrencyData(baseCountry, countryName) : Promise.resolve(null),
     ]);
 
-  const demographics = rcResult.status === "fulfilled" ? rcResult.value : null;
-
   const countryData = {
     countryName,
-    demographics,
+    demographics: rcResult.status === "fulfilled" ? rcResult.value : null,
     covid: covidResult.status === "fulfilled" ? covidResult.value : null,
     outbreaks: outbreakResult.status === "fulfilled" ? outbreakResult.value : [],
     visa: visaResult.status === "fulfilled" ? visaResult.value : null,
@@ -179,34 +176,37 @@ async function handleCountryDataRequest(countryName, baseCountry) {
   return countryData;
 }
 
-// ─── restcountries.com v4 ─────────────────────────────────────────────────────
 async function getRestCountriesData(countryName) {
   const now = Date.now();
   if (cache.restCountries.data && now - cache.restCountries.timestamp < CACHE_TTL_MS) {
     return findInRestCountries(cache.restCountries.data, countryName);
   }
+  // ─── restcountries.com v5 ─────────────────────────────────────────────────────
+  const COUNTRY_DATA_URL =
+    "https://cdn.jsdelivr.net/gh/Him97kr/rest-countries-data/allcountries.json"
 
-  const url = "https://restcountries.com/v4/all?fields=name,population,density,area,capital,flag,cca3,cca2";
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`restcountries API error: ${response.status}`);
+  const response = await fetch(COUNTRY_DATA_URL);
+  if (!response.ok) throw new Error(`countries data API error: ${response.status}`);
   const raw = await response.json();
 
   const map = {};
-  raw.forEach((c) => {
+  const countryData = raw?.countryData;
+  countryData.forEach((c) => {
+    const density = c.population && c.area?.kilometers ? c.population / c.area.kilometers : null;
     const entry = {
-      country: c.name?.common,
-      countryCode: c.cca3 || null,
-      iso2: c.cca2 || null,
+      country: c.names?.common,
+      countryCode: c.codes?.alpha_3 ?? null,
+      iso2: c.codes?.alpha_2 ?? null,
       population: c.population ?? null,
-      area: c.area ?? null,
-      density: c.density ?? null,
-      capital: c.capital ? c.capital[0] : null,
+      area: c.area?.kilometers ?? null,
+      density: density,
+      capital: c.capitals[0]?.name ?? null,
       flag: c.flag
-        ? `<img height="20" width="30" src="${c.flag?.svg}" alt="${c.flag?.alt}" />`
+        ? `<img height="20" width="30" src="${c.flag?.url_svg}" alt="${c.flag?.url_png}" />`
         : "🌍",
     };
-    const common = c.name?.common?.toLowerCase();
-    const official = c.name?.official?.toLowerCase();
+    const common = c.names?.common?.toLowerCase();
+    const official = c.names?.official?.toLowerCase();
     if (common) map[common] = entry;
     if (official && official !== common) map[official] = entry;
   });
@@ -301,12 +301,13 @@ function filterOutbreaks(items, countryName) {
     }));
 }
 
-// ─── Passport Index (jsdelivr CDN) — Visa Requirements ───────────────────────
-// Data shape: { "IN": { "JP": { status: "visa free", days: 90 }, ... }, ... }
-const PASSPORT_DATA_URL =
-  "https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json";
 
 async function getVisaData(baseCountry, destCountry) {
+  // ─── Passport Index (jsdelivr CDN) — Visa Requirements ───────────────────────
+  // Data shape: { "IN": { "JP": { status: "visa free", days: 90 }, ... }, ... }
+  const PASSPORT_DATA_URL =
+    "https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json";
+
   const base = await resolveISO2(baseCountry);
   const dest = await resolveISO2(destCountry);
   if (!dest) return null;   // FIX: was returning error strings, now always null

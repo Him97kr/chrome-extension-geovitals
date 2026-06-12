@@ -667,7 +667,7 @@
     tooltip.innerHTML = `
       <div class="cei-header">
         <span class="cei-country-name">${countryName}</span>
-        <span class="cei-flag">${flag}</span>
+        <span class="cei-flag">${flag || "🌍"}</span>
       </div>
 
       <div class="cei-body">

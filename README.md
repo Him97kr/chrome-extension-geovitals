@@ -94,7 +94,7 @@ All APIs are **free** and require **no API key**.
 
 | API | Data |
 |---|---|
-| [REST Countries v4](https://restcountries.com) | Population, density, area, capital city, flag, ISO codes |
+| [REST Countries v5](https://restcountries.com) | Population, density, area, capital city, flag, ISO codes |
 | [Passport Index](https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json) | Visa requirements by passport + destination country |
 | [fawazahmed0 Currency API](https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/) | Daily exchange rates for 150+ currencies, via jsdelivr CDN |
 | [Google News RSS](https://news.google.com) | Recent headlines, localized to passport country |
@@ -178,6 +178,9 @@ Tooltip renders
 ---
 
 ## 📦 Changelog
+
+### v1.1.5
+- ✅ Rest Countries API v5 compatibility
 
 ### v1.1.1
 - ✅ Added **Visa Checker** — shows visa requirement (Visa Free / On Arrival / eVisa / Required) for your passport on every hover
