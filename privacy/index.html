@@ -7,22 +7,47 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }
         h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; }
+        h2 { margin-top: 1.5em; }
         ul { padding-left: 20px; }
     </style>
 </head>
 <body>
     <h1>Privacy Policy for GeoVitals</h1>
-    <p><strong>Effective Date:</strong> May 15, 2026</p>
-    
+    <p><strong>Effective Date:</strong> June 15, 2026</p>
+
     <p>GeoVitals does not collect, store, or share any personal data.</p>
-    
-    <p>The extension does not track browsing history, keystrokes, form data, or any user activity. It fetches publicly available data from the following trusted sources solely to display country information in a tooltip:</p>
+
+    <p>The extension does not track browsing history, keystrokes, form data, or any user activity beyond what is described below.</p>
+
+    <h2>Data Fetched</h2>
+    <p>When you hover a country name, the extension fetches publicly available information from the following trusted sources solely to display it in a tooltip:</p>
     <ul>
-        <li>restcountries.com</li>
-        <li>disease.sh</li>
-        <li>who.int</li>
+        <li><strong>jsdelivr CDN</strong> (cdn.jsdelivr.net) — country demographics data, passport visa index, and daily currency exchange rates</li>
+        <li><strong>Google News RSS</strong> (news.google.com) — recent news headlines for the hovered country</li>
+        <li><strong>disease.sh</strong> — COVID-19 statistics</li>
+        <li><strong>World Health Organization</strong> (who.int) — disease outbreak alerts</li>
     </ul>
-    
-    <p>No data is ever sent to any third-party server owned by this extension.</p>
+    <p>All fetched data is cached locally in memory for up to 30 minutes to minimise network requests. No fetched data is stored permanently or transmitted to any server owned by this extension.</p>
+
+    <h2>Passport Country Detection</h2>
+    <p>To show visa requirements, the extension reads your browser's accepted languages (via the <code>chrome.i18n.getAcceptLanguages</code> API) to infer your country on first install. This information is stored locally in Chrome's sync storage (<code>chrome.storage.sync</code>) and is only used to determine visa requirements for the hovered country. It is never transmitted to any external server owned by this extension.</p>
+    <p>You can change or clear your passport country at any time from the Options page.</p>
+
+    <h2>Local Storage</h2>
+    <p>The extension stores the following data locally using Chrome's sync storage:</p>
+    <ul>
+        <li>Extension enabled/disabled state</li>
+        <li>Your settings (show/hide visa, news, COVID, WHO data)</li>
+        <li>Your passport country (ISO2 code and name)</li>
+        <li>The last hovered country and its data (for display in the popup)</li>
+        <li>Country exclusion list</li>
+    </ul>
+    <p>This data never leaves your browser except as part of Chrome's standard sync mechanism if you have Chrome Sync enabled.</p>
+
+    <h2>No Third-Party Tracking</h2>
+    <p>No data is ever sent to any third-party server owned by this extension. GeoVitals contains no analytics, no advertising, and no tracking of any kind.</p>
+
+    <h2>Contact</h2>
+    <p>If you have any questions about this privacy policy, please open an issue on the <a href="https://github.com/Him97kr/chrome-extension-geovitals" target="_blank">GitHub repository</a>.</p>
 </body>
 </html>
