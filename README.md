@@ -179,6 +179,9 @@ Tooltip renders
 
 ## 📦 Changelog
 
+### v1.1.6
+- ✅ Excluded content script to run on https://him97kr.github.io/geoquery-dashboard/
+
 ### v1.1.5
 - ✅ Rest Countries API v5 compatibility
 
