@@ -57,6 +57,8 @@
         "https://disease.sh/*",
         "https://www.who.int/*",
         "https://cdn.jsdelivr.net/*",
+        "https://raw.githubusercontent.com/*",
+        "https://*.currency-api.pages.dev/*",
         "https://news.google.com/*"
     ]
 }
