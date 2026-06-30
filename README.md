@@ -179,6 +179,10 @@ Tooltip renders
 
 ## 📦 Changelog
 
+### v1.1.7
+- ✅ Fallback urls for fetching data from raw.githubusercontent.com
+- ✅ Popup geoquery dashboard link issue fix
+
 ### v1.1.6
 - ✅ Excluded content script to run on https://him97kr.github.io/geoquery-dashboard/
 

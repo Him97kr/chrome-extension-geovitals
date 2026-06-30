@@ -1,4 +1,4 @@
-// popup.js — GeoVitals v1.1.6
+// popup.js — GeoVitals v1.1.7
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const toggleBtn = document.getElementById("toggleBtn");
@@ -15,7 +15,6 @@ const currentTab = document.getElementById("currentTab");
 const lastCountryCard = document.getElementById("lastCountryCard");
 const lastCountryName = document.getElementById("lastCountryName");
 const lastCountryMeta = document.getElementById("lastCountryMeta");
-const geoqueryLink = document.getElementById("geoqueryLink");
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let isEnabled = true;
@@ -154,10 +153,4 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       currentTab.textContent = "active tab";
     }
   }
-});
-
-// ── GeoQuery link ─────────────────────────────────────────────────────────────
-geoqueryLink.addEventListener("click", (e) => {
-  e.preventDefault();
-  chrome.tabs.create({ url: "https://him97kr.github.io/geoquery-dashboard" });
 });

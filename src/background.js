@@ -181,13 +181,27 @@ async function getRestCountriesData(countryName) {
   if (cache.restCountries.data && now - cache.restCountries.timestamp < CACHE_TTL_MS) {
     return findInRestCountries(cache.restCountries.data, countryName);
   }
-  // ─── restcountries.com v5 ─────────────────────────────────────────────────────
-  const COUNTRY_DATA_URL =
-    "https://cdn.jsdelivr.net/gh/Him97kr/rest-countries-data/allcountries.json"
 
-  const response = await fetch(COUNTRY_DATA_URL);
-  if (!response.ok) throw new Error(`countries data API error: ${response.status}`);
-  const raw = await response.json();
+  const COUNTRY_DATA_PRIMARY =
+    "https://cdn.jsdelivr.net/gh/Him97kr/rest-countries-data/allcountries.json";
+  const COUNTRY_DATA_FALLBACK =
+    "https://raw.githubusercontent.com/Him97kr/rest-countries-data/main/allcountries.json";
+
+  let raw = null;
+  for (const url of [COUNTRY_DATA_PRIMARY, COUNTRY_DATA_FALLBACK]) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      raw = await response.json();
+      break;
+    } catch (err) {
+      console.warn(`[BG] Country data fetch failed for ${url}:`, err.message);
+    }
+  }
+  if (!raw) throw new Error("Both primary and fallback country data sources failed");
 
   const map = {};
   const countryData = raw?.countryData;
@@ -303,14 +317,12 @@ function filterOutbreaks(items, countryName) {
 
 
 async function getVisaData(baseCountry, destCountry) {
-  // ─── Passport Index (jsdelivr CDN) — Visa Requirements ───────────────────────
-  // Data shape: { "IN": { "JP": { status: "visa free", days: 90 }, ... }, ... }
-  const PASSPORT_DATA_URL =
-    "https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json";
+  const PASSPORT_PRIMARY = "https://cdn.jsdelivr.net/gh/imorte/passport-index-data/passport-index.json";
+  const PASSPORT_FALLBACK = "https://raw.githubusercontent.com/imorte/passport-index-data/master/passport-index.json";
 
   const base = await resolveISO2(baseCountry);
   const dest = await resolveISO2(destCountry);
-  if (!dest) return null;   // FIX: was returning error strings, now always null
+  if (!dest) return null;
   if (!base) return null;
   if (dest.toUpperCase() === base.toUpperCase()) {
     return { access: "home", dest, base };
@@ -324,19 +336,29 @@ async function getVisaData(baseCountry, destCountry) {
   }
 
   try {
-    // FIX: fetch full passport index once into passportDataCache (30 min TTL)
-    // instead of re-fetching on every hover
     if (!passportDataCache.data || now - passportDataCache.timestamp > CACHE_TTL_MS) {
-      const response = await fetch(PASSPORT_DATA_URL);
-      if (!response.ok) throw new Error(`Passport index HTTP ${response.status}`);
-      passportDataCache = { data: await response.json(), timestamp: now };
+      let json = null;
+      for (const url of [PASSPORT_PRIMARY, PASSPORT_FALLBACK]) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          json = await response.json();
+          break; // success, stop trying further URLs
+        } catch (err) {
+          console.warn(`[BG] Passport fetch failed for ${url}:`, err.message);
+        }
+      }
+      if (!json) throw new Error("Both primary and fallback passport sources failed");
+      passportDataCache = { data: json, timestamp: now };
     }
 
     const json = passportDataCache.data;
-
-    if (!json[base]) return null;  // FIX: was returning string
+    if (!json[base]) return null;
     const entry = json[base][dest];
-    if (!entry) return null;  // FIX: was returning string
+    if (!entry) return null;
 
     const result = {
       access: entry.status ?? null,
@@ -517,19 +539,16 @@ async function getCurrencyData(baseISO2, destCountryName) {
   const baseCur = ISO2_TO_CURRENCY[baseISO2.toUpperCase()];
   if (!baseCur) return null;
 
-  // Resolve destination ISO2, then its currency
   const destISO2 = await resolveISO2(destCountryName);
   if (!destISO2) return null;
   const destCur = ISO2_TO_CURRENCY[destISO2.toUpperCase()];
   if (!destCur) return null;
 
-  // Same currency — no conversion needed, signal to show "Same currency" card
   if (baseCur === destCur) {
     return { same: true, baseCur, destCur };
   }
 
   const now = Date.now();
-  // Check per-currency cache
   if (
     currencyCache[baseCur] &&
     now - currencyCache[baseCur].timestamp < CURRENCY_CACHE_TTL_MS
@@ -538,22 +557,35 @@ async function getCurrencyData(baseISO2, destCountryName) {
     return rate != null ? { rate, baseCur, destCur } : null;
   }
 
-  try {
-    const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${baseCur}.json`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Currency API HTTP ${response.status}`);
-    const json = await response.json();
+  const CURRENCY_PRIMARY =
+    `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${baseCur}.json`;
+  const CURRENCY_FALLBACK =
+    `https://${'latest'}.currency-api.pages.dev/v1/currencies/${baseCur}.json`;
 
-    // Shape: { date: "...", [baseCur]: { usd: 0.012, eur: 0.011, ... } }
-    const rates = json[baseCur];
-    if (!rates) return null;
-
-    currencyCache[baseCur] = { data: rates, timestamp: now };
-
-    const rate = rates[destCur];
-    return rate != null ? { rate, baseCur, destCur } : null;
-  } catch (err) {
-    console.error("[BG] getCurrencyData error:", err);
+  let json = null;
+  for (const url of [CURRENCY_PRIMARY, CURRENCY_FALLBACK]) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      json = await response.json();
+      break;
+    } catch (err) {
+      console.warn(`[BG] Currency data fetch failed for ${url}:`, err.message);
+    }
+  }
+  if (!json) {
+    console.error("[BG] getCurrencyData: both primary and fallback sources failed");
     return null;
   }
+
+  const rates = json[baseCur];
+  if (!rates) return null;
+
+  currencyCache[baseCur] = { data: rates, timestamp: now };
+
+  const rate = rates[destCur];
+  return rate != null ? { rate, baseCur, destCur } : null;
 }

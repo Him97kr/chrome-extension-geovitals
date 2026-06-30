@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "GeoVitals - Country Insights on Hover",
-    "version": "1.1.6",
+    "version": "1.1.7",
     "description": "Hover over any country name for instant demographics, visa requirements, currency rates, news, COVID stats and WHO alerts.",
     "icons": {
         "16": "16.png",
@@ -57,6 +57,8 @@
         "https://disease.sh/*",
         "https://www.who.int/*",
         "https://cdn.jsdelivr.net/*",
+        "https://raw.githubusercontent.com/*",
+        "https://*.currency-api.pages.dev/*",
         "https://news.google.com/*"
     ]
 }
