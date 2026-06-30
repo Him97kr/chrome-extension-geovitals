@@ -190,7 +190,10 @@ async function getRestCountriesData(countryName) {
   let raw = null;
   for (const url of [COUNTRY_DATA_PRIMARY, COUNTRY_DATA_FALLBACK]) {
     try {
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       raw = await response.json();
       break;
@@ -337,7 +340,10 @@ async function getVisaData(baseCountry, destCountry) {
       let json = null;
       for (const url of [PASSPORT_PRIMARY, PASSPORT_FALLBACK]) {
         try {
-          const response = await fetch(url);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           json = await response.json();
           break; // success, stop trying further URLs
@@ -559,7 +565,10 @@ async function getCurrencyData(baseISO2, destCountryName) {
   let json = null;
   for (const url of [CURRENCY_PRIMARY, CURRENCY_FALLBACK]) {
     try {
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       json = await response.json();
       break;
